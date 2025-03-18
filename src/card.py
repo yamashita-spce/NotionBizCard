@@ -16,7 +16,7 @@ import configparser
 
 # 環境変数の設定
 config = configparser.ConfigParser()
-config.read("config.ini")
+config.read("../config.ini")
 
 UPLOAD_FOLDER = config["PRIVATE"]["UPLOAD_FOLDER"]
 print(UPLOAD_FOLDER)

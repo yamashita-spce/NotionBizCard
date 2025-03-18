@@ -1,2 +1,4 @@
-# remove apikey
+# remove config & cache file
 *.config
+*.ini
+__pycache__/

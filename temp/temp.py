@@ -1,9 +1,5 @@
 
 
-# from google.oauth2 import service_account
-# from googleapiclient.discovery import build
-# from googleapiclient.http import MediaFileUpload
-
 
 # # Googleドライブの認証情報と公開フォルダのID（事前に「リンクを知っている全員が閲覧可能」に設定済み）
 # CREDENTIALS_FILE = "path/to/service_account_credentials.json"
