@@ -34,11 +34,34 @@ pyte uninstall 3.12.6/envs/NotionBizCard
 ```
 
 ## 使い方
-0. サーバーのssh　公開鍵認証を設定
-- config.iniファイルのKEY_PATHを公開鍵のパスに変更
-- config.iniでapiキー，データベースIDなどの変更が可能
+0. 構成ファイルの設定
+- 外部閲覧可能なサーバーを準備し、ssh公開鍵認証方式でアクセス可能な状態にする
+- config.iniファイルの作成
+```Shell
+[HOST_WIN]
+SCP_KEY_PATH = C:\Users\xxx\.ssh\xxx
+SERVER = xxx
+USER = xxx
+UPLOAD_PATH = /home/user/www/xxx
+UPLOAD_URL = https;//xxx
+GPTAPI_TOKEN = sk-proj-xxx
+NOTION_API_TOKEN = ntn_xxx
+DATABASE_ID = xxx
+NOTION_VERSION = 2022-06-28
+```
+- SCP_KEY_PATH: サーバーへの秘密鍵の絶対パス
+- SERVER: sshサーバーのドメイン、もしくはIPアドレス
+- USER:　sshのユーザー名
+- UPLOAD_PATH: 画像をアップロードするサーバーのパス
+- UPLOAD_URL: 公開されたURL（この配下に画像がアップロードされます）
+- GPTAPI_TOKEN: openAIのAPIキー
+- NOTION_API_TOKEN: notionのAPIキー
+- DATABASE_ID: notionのデータベースキー
+- NOTION_VERSION: notionのバージョン
+  
 1. Webサーバーを立ち上げる
 ```Shell
+(NotionBizCard) cd src
 (NotionBizCard) python web_server.py
 ```
 2. ブラウザから，127.0.0.1:5001 もしくは，ローカルIP:5001でアクセス
