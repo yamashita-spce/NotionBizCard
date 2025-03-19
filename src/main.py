@@ -15,6 +15,11 @@ config.read("../config.ini")
 #public file sever
 UPLOAD_URL = config["HOST_WIN"]["UPLOAD_URL"]
 
+def remove_files(business_card_input, hearing_seed_inputs):
+    os.remove("./uploads/" + os.path.basename(business_card_input))
+    for hearing_seed_input in hearing_seed_inputs:
+        os.remove("./uploads/" + os.path.basename(hearing_seed_input))
+        
 
 def main(business_card_input, hearing_seed_inputs, lead_date_str):
         
@@ -32,10 +37,13 @@ def main(business_card_input, hearing_seed_inputs, lead_date_str):
         page_id = cnp.create_notion_page(properties)
 
         # 5) Notion APIで画像ブロック追加
-        cnp.append_image_blocks(page_id, unique_id, hearing_seed_inputs)
+        cnp.append_image_blocks(page_id, unique_id, business_card_input, hearing_seed_inputs)
 
         # 6) リモートサーバのフォルダを削除
         # pub_internet.delete_remote_folder(unique_id)
+        
+        # 7) upload ファイルの削除
+        remove_files(business_card_input, hearing_seed_inputs)
 
 
 if __name__ == "__main__":

@@ -229,7 +229,7 @@ def create_notion_page(properties):
         print(f"Notionページ作成エラー: {response.text}")
 
 
-def append_image_blocks(page_id, unique_id, images):
+def append_image_blocks(page_id, unique_id, card_image, hearing_images):
     """
     作成済みのページ（page_id）の本文に、外部画像URLを用いた画像ブロックを追加する関数です。
     image_urls は追加する画像のURLのリスト。
@@ -241,7 +241,20 @@ def append_image_blocks(page_id, unique_id, images):
         "Notion-Version": NOTION_VERSION,
     }
     children = []
-    for img_name in images:
+    
+    # 名刺画像の追加
+    card_url = UPLOAD_URL + unique_id + "/card/" + os.path.basename(card_image)
+    children.append({
+        "object": "block",
+        "type": "image",
+        "image": {
+            "type": "external",
+            "external": {"url": card_url}
+        }
+    })
+    
+    # ヒアリングシート画像の追加
+    for img_name in hearing_images:
 
         img_url = UPLOAD_URL + unique_id + "/hearing/" + os.path.basename(img_name)
         children.append({
