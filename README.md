@@ -3,8 +3,7 @@
 - 展示会などで入手した情報，ヒアリングシートをnotionリードデータベースに保管するための自動化ツール
 
 ## 動作確認環境
-- アーキテクチャ：arm64 
-- OS：macOS Sequoia (version 15.3.1)
+- OS：macOS Sequoia (version 15.3.1)、windows10 home
 - 環境：python 3.12.6
 
 ## インストール方法
