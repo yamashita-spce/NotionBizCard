@@ -60,13 +60,10 @@ def delete_remote_folder(unique_id: str):
         raise RuntimeError(f"リモート削除失敗 (exit {exit_status}): {err}")
     
 
-def load_private_key(path: str) -> paramiko.PKey:
-    """
-    指定されたパスの秘密鍵ファイルを自動判別して読み込む。
-    RSA, DSA, ECDSA, Ed25519 の各形式(OpenSSH/PEM)に対応。
-    読み込みに失敗した場合は SSHException を投げる。
-    """
+def load_private_key(path: str):
+    
     path = os.path.expanduser(path)
+   
     key_classes = (
         paramiko.RSAKey,
         paramiko.DSSKey,
@@ -78,5 +75,3 @@ def load_private_key(path: str) -> paramiko.PKey:
             return cls.from_private_key_file(path)
         except (paramiko.SSHException, IOError):
             continue
-
-    raise paramiko.SSHException(f"秘密鍵ファイル {path} を読み込めませんでした。")
