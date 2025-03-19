@@ -7,16 +7,17 @@ config = configparser.ConfigParser()
 config.read("../config.ini", encoding="utf-8")
 
 # OpenAI APIキー
-OPENAI_API_KEY = config["PRIVATE"]["GPTAPI_TOKEN"]
+OPENAI_API_KEY = config["HOST_WIN"]["GPTAPI_TOKEN"]
 MODEL = "gpt-4o"
 
 # 画像アップロード用のURL
-UPLOAD_URL = config["PRIVATE"]["UPLOAD_URL"]
+UPLOAD_URL = config["HOST_WIN"]["UPLOAD_URL"]
 
-def ocr_image_from_url(image_url):
+
+def ocr_image_from_url(image_url) -> str:
     """
     指定した画像の公開URLから、GPTにOCR解析を依頼し、
-    抽出されたテキストをJSON形式で返す関数です。
+    抽出されたテキストを、階層構造を持たない単純なJSON形式で返す関数です。
     """
 
     client = OpenAI(api_key=OPENAI_API_KEY)
@@ -57,11 +58,27 @@ def ocr_image_from_url(image_url):
             }],
         )
            
-        return response.choices[0].message.content
+        response = remove_code_block_fences(response.choices[0].message.content)
+        
+        print("OCR抽出結果:", response)
 
+        return json.loads(response)
+    
     except Exception as e:
-        print(e)
-        exit(1)
+        print("OCRエラー:", e)
+        return None
+
+def remove_code_block_fences(s: str) -> str:
+    """
+    コードブロック（```json ... ```）を取り除く。
+    """
+    lines = s.strip().splitlines()
+    if lines and lines[0].startswith("```"):
+        lines = lines[1:]
+    if lines and lines[-1].startswith("```"):
+        lines = lines[:-1]
+    return "\n".join(lines).strip()
+
 
 if __name__ == "__main__":
     # 解析したい画像の公開URLを指定してください

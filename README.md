@@ -5,7 +5,7 @@
 ## 動作確認環境
 - アーキテクチャ：arm64 
 - OS：macOS Sequoia (version 15.3.1)
-- 環境：pyenv 2.5.0, python 3.12.6
+- 環境：python 3.12.6
 
 ## インストール方法
 ### pythonのpkg管理は仮想環境を推奨
@@ -16,6 +16,10 @@ pip install pyenv==2.5.0
 pyenv install 3.12.6
 pyenv virtualenv 3.12.6 NotionBizCard
 pyenv activate NotionBizCard
+```
+## conda環境の作成
+```Shell
+conda env create -f environment.yml
 ```
 
 ### 必要なpkgのインストール
