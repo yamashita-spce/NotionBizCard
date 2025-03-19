@@ -35,6 +35,9 @@ pyte uninstall 3.12.6/envs/NotionBizCard
 ```
 
 ## 使い方
+0. サーバーのssh　公開鍵認証を設定
+- config.iniファイルのKEY_PATHを公開鍵のパスに変更
+- config.iniでapiキー，データベースIDなどの変更が可能
 1. Webサーバーを立ち上げる
 ```Shell
 (NotionBizCard) python web_server.py

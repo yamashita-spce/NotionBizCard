@@ -34,7 +34,6 @@ def scp_upload_via_key(card_path, hearing_paths):
 
     sftp.close()
     ssh.close()
-    
 
     return unique_id, remote_base
 
@@ -61,10 +60,23 @@ def delete_remote_folder(unique_id: str):
         raise RuntimeError(f"リモート削除失敗 (exit {exit_status}): {err}")
     
 
-def load_private_key(path):
+def load_private_key(path: str) -> paramiko.PKey:
+    """
+    指定されたパスの秘密鍵ファイルを自動判別して読み込む。
+    RSA, DSA, ECDSA, Ed25519 の各形式(OpenSSH/PEM)に対応。
+    読み込みに失敗した場合は SSHException を投げる。
+    """
     path = os.path.expanduser(path)
-    for KeyClass in (paramiko.ECDSAKey, paramiko.RSAKey):
+    key_classes = (
+        paramiko.RSAKey,
+        paramiko.DSSKey,
+        paramiko.ECDSAKey,
+        paramiko.Ed25519Key,
+    )
+    for cls in key_classes:
         try:
-            return KeyClass.from_private_key_file(path)
-        except paramiko.SSHException:
+            return cls.from_private_key_file(path)
+        except (paramiko.SSHException, IOError):
             continue
+
+    raise paramiko.SSHException(f"秘密鍵ファイル {path} を読み込めませんでした。")
