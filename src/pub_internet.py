@@ -4,10 +4,10 @@ import configparser
 config = configparser.ConfigParser()
 config.read("../config.ini", encoding="utf-8")
 
-KEY_PATH = config["HOST_WIN"]["SCP_KEY_PATH"]
-UPLORD_PATH = config["HOST_WIN"]["UPLOAD_PATH"]
-SERVER = config["HOST_WIN"]["SERVER"]
-USERNAME = config["HOST_WIN"]["USER"]
+KEY_PATH = config["HOST"]["SCP_KEY_PATH"]
+UPLORD_PATH = config["HOST"]["UPLOAD_PATH"]
+SERVER = config["HOST"]["SERVER"]
+USERNAME = config["HOST"]["USER"]
 
 
 def scp_upload_via_key(card_path, hearing_paths):
