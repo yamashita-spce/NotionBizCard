@@ -7,11 +7,11 @@ config = configparser.ConfigParser()
 config.read("../config.ini", encoding="utf-8")
 
 # OpenAI APIキー
-OPENAI_API_KEY = config["HOST_WIN"]["GPTAPI_TOKEN"]
+OPENAI_API_KEY = config["HOST"]["GPTAPI_TOKEN"]
 MODEL = "gpt-4o"
 
 # 画像アップロード用のURL
-UPLOAD_URL = config["HOST_WIN"]["UPLOAD_URL"]
+UPLOAD_URL = config["HOST"]["UPLOAD_URL"]
 
 
 def ocr_image_from_url(image_url) -> str:

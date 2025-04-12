@@ -7,10 +7,6 @@ from main import main as process_cards
 from werkzeug.utils import secure_filename
 from PIL import Image
 import datetime
-from pathlib import Path
-import subprocess
-import socket
-import shutil
 
 
 app = Flask(__name__)

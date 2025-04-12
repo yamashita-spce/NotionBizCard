@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>名刺処理アップローダー</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    /* 引き継ぎリストのテーブル用スタイル（任意） */
+    #handover-list-table th,
+    #handover-list-table td {
+      padding: 8px 12px;
+      border: 1px solid #e5e7eb; /* gray-200 */
+      text-align: left;
+    }
+    #handover-list-table tbody tr:hover {
+      background-color: #f3f4f6; /* gray-100 */
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
+  <div class="w-full max-w-md bg-white rounded-xl shadow-lg p-6">
+    <h1 class="text-2xl font-semibold text-center mb-6">リードデータベース</h1>
+
+    <div id="handover-source-info" class="hidden mb-4 p-3 bg-yellow-100 border border-yellow-300 rounded-md text-sm">
+      <p><strong>引き継ぎ元担当者:</strong> <span id="source-tantosha-name"></span></p>
+      <p>（内容は引き継がれましたが、担当者はご自身の名前を選択してください）</p>
+    </div>
+
+    {% if message %}
+      <p class="mt-4 text-center {{ 'text-green-600' if success == '1' else 'text-red-600' }}">
+        {{ message|safe }}
+      </p>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" id="upload-form" class="space-y-6">
+      <div>
+        <label for="tantosha-input" class="block text-sm font-medium text-gray-700 mb-1">担当者 <span class="text-red-500">*</span></label>
+        <div class="flex items-center space-x-2">
+          <select name="tantosha" id="tantosha-input" class="flex-grow mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required>
+            <option value="" disabled {% if not tantosha_value %}selected{% endif %}>担当者を選択してください</option>
+            {% for assignee in assignees_list %}
+              <option value="{{ assignee }}" {% if assignee == tantosha_value %}selected{% endif %}>{{ assignee }}</option>
+            {% endfor %}
+          </select>
+          <button type="button" id="load-handover-list-btn" class="mt-1 px-5 py-2 bg-green-100 rounded-lg hover:bg-green-200 transition text-sm whitespace-nowrap">
+            引き継ぐ
+          </button>
+        </div>
+        <div id="handover-list-container" class="hidden mt-3 border rounded-md p-3 bg-gray-50">
+          <h4 class="text-sm font-medium mb-2">引き継ぎデータを選択してください:</h4>
+          <div id="handover-list-table-wrapper" class="max-h-40 overflow-y-auto">
+             </div>
+          <button type="button" id="close-handover-list-btn" class="mt-2 text-xs text-gray-500 hover:underline">閉じる</button>
+        </div>
+      </div>
+
+      <div>
+        <label class="block font-medium mb-1">名刺画像<span class="text-red-500">*</span></label>
+        <div class="flex space-x-2">
+          <label for="business-card-input" class="cursor-pointer inline-flex items-center px-4 py-2 bg-indigo-100 rounded-lg hover:bg-indigo-200 transition">
+            ファイルを選択
+          </label>
+          <button type="button" id="business-card-camera" class="inline-flex items-center px-4 py-2 bg-indigo-100 rounded-lg hover:bg-indigo-200 transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>
+            カメラ
+          </button>
+        </div>
+        <input type="file" name="business_card" id="business-card-input" accept="image/*" class="hidden">
+        <div id="business-card-preview" class="mt-2 grid grid-cols-1 gap-2"></div>
+      </div>
+
+      <div>
+        <label class="block font-medium mb-1">ヒアリングシート画像（複数可）</label>
+         <div class="flex space-x-2">
+            <label for="hearing-seed-input" class="cursor-pointer inline-flex items-center px-4 py-2 bg-indigo-100 rounded-lg hover:bg-indigo-200 transition">
+                ファイルを選択
+            </label>
+            <button type="button" id="hearing-sheet-camera" class="inline-flex items-center px-4 py-2 bg-indigo-100 rounded-lg hover:bg-indigo-200 transition">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>
+                カメラ
+            </button>
+        </div>
+        <input type="file" name="hearing_seed" id="hearing-seed-input" multiple accept="image/*" class="hidden">
+        <div id="hearing-seed-preview" class="mt-2 grid grid-cols-3 gap-2"></div>
+      </div>
+
+      
+      <div>
+        <label for="proposal-plan-input" class="block text-sm font-medium text-gray-700 mb-1">提案（興味がありそうな）プラン<span class="text-red-500">*</span></label>
+        <select name="proposal_plan" id="proposal-plan-input" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required>
+          <option value="" disabled {% if not proposal_plan_value %}selected{% endif %}>プランを選択してください</option>
+          {% for plan in proposal_plan_list %}
+            <option value="{{ plan }}" {% if plan == proposal_plan_value %}selected{% endif %}>{{ plan }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <hr class="border-gray-200">
+      <h2 class="text-lg font-semibold text-gray-800 -mb-2 pt-2">ペルソナ</h2>
+
+      <div class="grid grid-cols-3 gap-4"> 
+          <div class="flex-1">
+              <label for="needs-input" class="block text-sm font-medium text-gray-700 mb-1">ニーズ<span class="text-red-500">*</span></label>
+              <select name="needs" id="needs-input" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required>
+                  <option value="" selected disabled>選択</option>
+                  <option value="3">高</option>
+                  <option value="2">中</option>
+                  <option value="1">低</option>
+                  </select>
+          </div>
+
+          <div class="flex-1">
+              <label for="authority-input" class="block text-sm font-medium text-gray-700 mb-1">決裁権<span class="text-red-500">*</span></label>
+              <select name="authority" id="authority-input" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required>
+                  <option value="" selected disabled>選択</option>
+                  <option value="3">大</option>
+                  <option value="2">中</option>
+                  <option value="1">小</option>
+                  </select>
+          </div>
+
+          <div class="flex-1">
+              <label for="timing-input" class="block text-sm font-medium text-gray-700 mb-1">導入時期<span class="text-red-500">*</span></label>
+              <select name="timing" id="timing-input" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required>
+                  <option value="" selected disabled>選択</option>
+                  <option value="3">1-3ヶ月以内</option>
+                  <option value="2">3-12ヶ月以内</option>
+                  <option value="1">不明・未定</option>
+                  </select>
+          </div>
+      </div>
+
+      <hr class="border-gray-200">
+      <h2 class="text-lg font-semibold text-gray-800 -mb-2 pt-2">ヒアリング内容</h2>
+
+      <div>
+        <label for="current-situation-input" class="block text-sm font-medium text-gray-700 mb-1">現状</label>
+        <textarea name="current_situation" id="current-situation-input" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="現在のお客様の状況について記述してください">{{ current_situation_value }}</textarea>
+      </div>
+
+      <div>
+        <label for="problem-input" class="block text-sm font-medium text-gray-700 mb-1">問題</label>
+        <textarea name="problem" id="problem-input" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="お客様が抱えている問題点を記述してください">{{ problem_value }}</textarea>
+      </div>
+
+      <div>
+        <label for="most-important-need-input" class="block text-sm font-medium text-gray-700 mb-1">最重要ニーズ</label>
+        <textarea name="most_important_need" id="most-important-need-input" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="お客様が最も解決したいと考えているニーズを記述してください">{{ most_important_need_value }}</textarea>
+      </div>
+
+      <div>
+        <label for="proposal-content-input" class="block text-sm font-medium text-gray-700 mb-1">提案内容</label>
+        <textarea name="proposal_content" id="proposal-content-input" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="具体的な提案内容を記述してください">{{ proposal_content_value }}</textarea>
+      </div>
+
+      <div>
+        <label for="consideration-reason-input" class="block text-sm font-medium text-gray-700 mb-1">検討理由</label>
+        <textarea name="consideration_reason" id="consideration-reason-input" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="お客様が提案を検討する理由や背景を記述してください">{{ consideration_reason_value }}</textarea>
+      </div>
+
+      <div>
+        <label for="lead-date-input" class="block font-medium">リード獲得日 (YYYY/M/D形式)</label> <input type="text" name="lead_date" id="lead-date-input" placeholder="デフォルトは当日になります" value="{{ lead_date_value }}" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500"> </div>
+
+      <div class="flex items-center space-x-3 pt-4">
+          <button type="button" id="save-handover-btn" class="py-2 px-4 bg-yellow-500 text-white font-semibold rounded-lg shadow hover:bg-yellow-600 transition flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+              </svg>
+              引き継ぎ
+          </button>
+          <button id="submit-btn" type="submit" class="flex-grow py-2 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow hover:bg-indigo-700 transition flex items-center justify-center">
+              <span id="btn-text">アップロード</span>
+              <svg id="btn-spinner" class="hidden animate-spin ml-2 h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
+          </button>
+      </div>
+
+    <input type="hidden" name="delete_handover_id" id="delete-handover-id-input" value="">
+    <input type="hidden" name="source_tantosha" id="source-tantosha-input" value="">
+
+    </form>
+
+  </div>
+
+  <div id="camera-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white p-4 rounded-lg max-w-lg w-full">
+        <h3 class="text-lg font-medium mb-2" id="camera-modal-title">写真を撮影</h3>
+        <div class="relative">
+          <video id="camera-video" class="w-full h-64 bg-black object-cover" autoplay playsinline></video>
+          <canvas id="camera-canvas" class="hidden"></canvas>
+        </div>
+        <div class="flex justify-between mt-4">
+          <button type="button" id="camera-cancel" class="px-4 py-2 bg-gray-200 rounded-lg">キャンセル</button>
+          <button type="button" id="camera-capture" class="px-4 py-2 bg-indigo-600 text-white rounded-lg">撮影</button>
+        </div>
+    </div>
+  </div>
+
+  <script>
+    // --- ▼▼▼ 初期化・既存機能 ▼▼▼ ---
+
+    // ページ読み込み時にカメラ許可を確認
+    window.addEventListener('DOMContentLoaded', () => {
+      // ブラウザがカメラAPIをサポートしているか確認
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        // 初回アクセス時にカメラ許可を求めるダイアログを表示
+        if (!localStorage.getItem('cameraPermissionRequested')) {
+          setTimeout(() => {
+            if (confirm('このアプリはカメラ機能を使用します。カメラへのアクセスを許可しますか？')) {
+              // カメラへのアクセス許可を求める
+              navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+                .then(stream => {
+                  // 許可された場合、ストリームを停止
+                  stream.getTracks().forEach(track => track.stop());
+                  console.log('カメラへのアクセスが許可されました');
+                  localStorage.setItem('cameraPermissionGranted', 'true');
+                })
+                .catch(err => {
+                  console.error('カメラへのアクセスが拒否されました:', err);
+                });
+            }
+            // 許可を求めたことを記録
+            localStorage.setItem('cameraPermissionRequested', 'true');
+          }, 1000); // 1秒後に表示
+        }
+      }
+    });
+
+    // 名刺プレビュー
+    document.getElementById("business-card-input").addEventListener("change", e => {
+      const container = document.getElementById("business-card-preview");
+      container.innerHTML = ""; // 既存のプレビューをクリア
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = ev => {
+          const img = document.createElement("img");
+          img.src = ev.target.result;
+          img.alt = file.name;
+          img.className = "w-full h-auto object-contain rounded max-h-32"; // サイズ調整例
+          container.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // ヒアリングシートプレビュー（累積表示）
+    const hearingInput = document.getElementById("hearing-seed-input");
+    const hearingPreview = document.getElementById("hearing-seed-preview");
+    // ページ読み込み時や引き継ぎ読み込み時にプレビューをどうするか検討が必要
+    // この例では単純に追加していく
+
+    hearingInput.addEventListener("change", e => {
+      Array.from(e.target.files).forEach(file => {
+        // 同じファイルがすでに追加されていないか確認（より厳密なチェックが必要な場合あり）
+        const isAlreadyAdded = Array.from(hearingPreview.querySelectorAll('img')).some(img => img.alt === file.name);
+        if (!isAlreadyAdded) {
+           const reader = new FileReader();
+           reader.onload = ev => {
+             const imgContainer = document.createElement("div"); // コンテナを追加して削除ボタンなどを付けやすくする
+             imgContainer.className = "relative w-16 h-16"; // サイズを小さくする例
+             const img = document.createElement("img");
+             img.src = ev.target.result;
+             img.alt = file.name;
+             img.className = "w-full h-full object-cover rounded";
+             imgContainer.appendChild(img);
+             hearingPreview.appendChild(imgContainer);
+           };
+           reader.readAsDataURL(file);
+        }
+      });
+      // 再選択のために input の value をリセット（必要に応じて）
+      // e.target.value = "";
+    });
+
+    // カメラ機能
+    let currentCameraTarget = null; // 'business_card' または 'hearing_seed'
+    let videoStream = null;
+    const cameraModal = document.getElementById("camera-modal");
+    const cameraVideo = document.getElementById("camera-video");
+    const cameraCanvas = document.getElementById("camera-canvas");
+    const cameraModalTitle = document.getElementById("camera-modal-title");
+
+    // カメラボタンのイベントリスナー
+    document.getElementById("business-card-camera").addEventListener("click", () => {
+      openCamera("business_card");
+    });
+
+    document.getElementById("hearing-sheet-camera").addEventListener("click", () => {
+      openCamera("hearing_seed");
+    });
+
+    // カメラを開く関数
+    function openCamera(target) {
+      console.log("openCamera関数が呼び出されました。対象:", target);
+      currentCameraTarget = target;
+      cameraModalTitle.textContent = target === "business_card" ? "名刺の写真を撮影" : "ヒアリングシートの写真を撮影";
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.error("カメラAPI非対応");
+        alert("このブラウザはカメラ機能をサポートしていません。");
+        return;
+      }
+
+      const hostname = window.location.hostname;
+      const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
+      const isPrivateIP = /^(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1]))/.test(hostname);
+      const isHttps = window.location.protocol === "https:";
+
+      if (!isLocalhost && !isPrivateIP && !isHttps) {
+         console.warn("HTTPS接続が必要です");
+         alert("セキュリティ上の理由から、カメラへのアクセスにはHTTPS接続が必要です。");
+         return;
+      }
+
+      cameraModal.classList.remove("hidden");
+      console.log("カメラモーダル表示");
+
+      const constraints = { video: { facingMode: "environment" }, audio: false }; //背面カメラ優先
+
+      console.log("カメラアクセス試行...");
+      navigator.mediaDevices.getUserMedia(constraints)
+        .then(stream => {
+          console.log("カメラアクセス成功");
+          videoStream = stream;
+          cameraVideo.srcObject = stream;
+          cameraVideo.play(); // 再生を開始
+        })
+        .catch(err => {
+          console.error("カメラアクセス失敗:", err);
+          // エラーメッセージ表示 (前のコードと同様)
+          let errorMessage = "カメラへのアクセスに失敗。";
+          if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") errorMessage += "許可が拒否されました。設定を確認してください。";
+          else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") errorMessage += "カメラが見つかりません。";
+          else if (err.name === "NotReadableError" || err.name === "TrackStartError") errorMessage += "カメラを読み取れません。他のアプリで使用中かも？";
+          else errorMessage += `エラー詳細: ${err.name}`;
+          alert(errorMessage + "\n\nブラウザ情報: " + navigator.userAgent);
+          closeCamera(); // エラー時はモーダルを閉じる
+        });
+    }
+
+    // 撮影ボタンのイベントリスナー
+    document.getElementById("camera-capture").addEventListener("click", () => {
+      if (!videoStream) {
+          console.error("ビデオストリームがありません");
+          return;
+      }
+      cameraCanvas.width = cameraVideo.videoWidth;
+      cameraCanvas.height = cameraVideo.videoHeight;
+      const context = cameraCanvas.getContext("2d");
+      if (!context) {
+          console.error("Canvasコンテキストを取得できませんでした");
+          return;
+      }
+      context.drawImage(cameraVideo, 0, 0, cameraCanvas.width, cameraCanvas.height);
+
+      cameraCanvas.toBlob(blob => {
+        if (!blob) {
+            console.error("Blobの作成に失敗しました");
+            alert("画像の保存に失敗しました。");
+            return;
+        }
+        const fileName = `camera_${currentCameraTarget}_${Date.now()}.jpg`;
+        const file = new File([blob], fileName, { type: "image/jpeg" });
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+
+        let inputElement;
+        if (currentCameraTarget === "business_card") {
+          inputElement = document.getElementById("business-card-input");
+          // 名刺は1枚なので、既存のファイルを置き換える
+          inputElement.files = dataTransfer.files;
+        } else if (currentCameraTarget === "hearing_seed") {
+          inputElement = document.getElementById("hearing-seed-input");
+          // ヒアリングシートは複数可なので、既存のファイルに追加する
+          const existingFiles = inputElement.files ? Array.from(inputElement.files) : [];
+          const combinedTransfer = new DataTransfer();
+          existingFiles.forEach(f => combinedTransfer.items.add(f));
+          combinedTransfer.items.add(file); // 新しいファイルを追加
+          inputElement.files = combinedTransfer.files;
+        } else {
+            console.error("不明なカメラターゲット:", currentCameraTarget);
+            return; // 不明な場合は何もしない
+        }
+
+        // 変更イベントを発火させてプレビューなどを更新
+        if (inputElement) {
+            inputElement.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+        closeCamera(); // 撮影後モーダルを閉じる
+
+      }, "image/jpeg", 0.9); // JPEG形式、品質90%
+    });
+
+    // キャンセルボタンのイベントリスナー
+    document.getElementById("camera-cancel").addEventListener("click", closeCamera);
+
+    // カメラを閉じる関数
+    function closeCamera() {
+      if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+        videoStream = null;
+        cameraVideo.srcObject = null; // ビデオ表示をクリア
+      }
+      cameraModal.classList.add("hidden");
+      console.log("カメラモーダル非表示");
+    }
+
+    // 送信時にボタン無効化＆スピナー表示
+    document.getElementById("upload-form").addEventListener("submit", (e) => {
+      // ここで最終的なバリデーションを行うことも可能
+      // 例: if (!document.getElementById('tantosha-input').value) { alert('担当者を選択してください'); e.preventDefault(); return; }
+
+      const btn = document.getElementById("submit-btn");
+      const btnText = document.getElementById("btn-text");
+      const btnSpinner = document.getElementById("btn-spinner");
+
+      btnText.classList.add("hidden");
+      btnSpinner.classList.remove("hidden");
+      btn.disabled = true;
+      // ボタン自体のテキストも変更するなら
+      // btn.querySelector('span').textContent = '処理中...'; // SVGがない場合
+    });
+
+    // --- ▲▲▲ 初期化・既存機能 ▲▲▲ ---
+
+
+    // --- ▼▼▼ 引き継ぎ機能用 JavaScript ▼▼▼ ---
+
+    // 要素取得
+    const saveHandoverBtn = document.getElementById('save-handover-btn');
+    const loadHandoverListBtn = document.getElementById('load-handover-list-btn');
+    const handoverListContainer = document.getElementById('handover-list-container');
+    const handoverListTableWrapper = document.getElementById('handover-list-table-wrapper');
+    const closeHandoverListBtn = document.getElementById('close-handover-list-btn');
+    const handoverSourceInfo = document.getElementById('handover-source-info');
+    const sourceTantoshaNameSpan = document.getElementById('source-tantosha-name');
+    const deleteHandoverIdInput = document.getElementById('delete-handover-id-input'); // Hidden input
+    const sourceTantoshaInput = document.getElementById('source-tantosha-input'); // Hidden input
+
+    // --- 1. 引き継ぎ保存処理 ---
+    saveHandoverBtn.addEventListener('click', async () => {
+        const tantoshaSelect = document.getElementById('tantosha-input');
+        const sourceTantosha = tantoshaSelect.value;
+
+        if (!sourceTantosha) {
+            alert('引き継ぎ保存するには、まず担当者を選択してください。');
+            return;
+        }
+
+        // フォームデータを収集 (ファイル以外)
+        const formData = {
+            handover_source_tantosha: sourceTantosha,
+            current_situation: document.getElementById('current-situation-input').value,
+            problem: document.getElementById('problem-input').value,
+            most_important_need: document.getElementById('most-important-need-input').value,
+            proposal_content: document.getElementById('proposal-content-input').value,
+            proposal_plan: document.getElementById('proposal-plan-input').value,
+            consideration_reason: document.getElementById('consideration-reason-input').value,
+            lead_date: document.getElementById('lead-date-input').value,
+            // ファイル名は含めない（サーバー側で管理）
+        };
+
+        console.log('Saving handover data:', formData);
+        const originalButtonContent = saveHandoverBtn.innerHTML; // SVG含む内容を保持
+        saveHandoverBtn.disabled = true;
+        saveHandoverBtn.innerHTML = `<span class="flex items-center justify-center"><svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V4a10 10 0 00-10 10h2zm2 8a8 8 0 01-8-8H0a10 10 0 0010 10v-2z"></path></svg>保存中...</span>`;
+
+        try {
+            // サーバーにデータを送信
+            const response = await fetch('/api/save_handover', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // 必要に応じて CSRF トークンなどを追加
+                },
+                body: JSON.stringify(formData),
+            });
+
+            // エラーレスポンスもJSON形式であることを期待する（サーバー実装による）
+            const result = await response.json();
+
+            if (!response.ok) {
+                // サーバーからのエラーメッセージがあれば表示
+                throw new Error(result.message || `サーバーエラー: ${response.statusText}`);
+            }
+
+            if (result.status === 'success') {
+                alert(`引き継ぎデータを保存しました。(ID: ${result.id})`);
+                // 保存成功したらフォームをクリアするなどの処理も検討
+            } else {
+                 // サーバーが成功ステータスでエラーメッセージを返した場合
+                 alert(`引き継ぎデータの保存に失敗しました: ${result.message || '不明なエラー'}`);
+            }
+        } catch (error) {
+            console.error('引き継ぎ保存エラー:', error);
+            alert(`引き継ぎデータの保存中にエラーが発生しました: ${error.message}`);
+        } finally {
+             saveHandoverBtn.disabled = false;
+             saveHandoverBtn.innerHTML = originalButtonContent; // 元のボタン内容に戻す
+        }
+    });
+
+    // --- 2. 引き継ぎリスト表示処理 ---
+    loadHandoverListBtn.addEventListener('click', async () => {
+        console.log('「引き継ぐ」ボタンがクリックされました'); // ★デバッグ用ログ
+
+        // リストを開く前に、読み込み済みIDと表示をクリア
+        deleteHandoverIdInput.value = '';
+        handoverSourceInfo.classList.add('hidden');
+        // フォーム自体のクリアも検討（ユーザーが新規入力と間違えないように）
+        document.getElementById('upload-form').reset(); // 必要なら
+
+        loadHandoverListBtn.disabled = true;
+        handoverListTableWrapper.innerHTML = '<p class="text-sm text-gray-500 px-3 py-2">リストを読み込み中...</p>';
+        handoverListContainer.classList.remove('hidden');
+
+        try {
+            const response = await fetch('/api/list_handovers');
+            if (!response.ok) {
+                throw new Error(`サーバーエラー: ${response.statusText}`);
+            }
+            const handovers = await response.json();
+
+            if (!Array.isArray(handovers)) {
+                 throw new Error("サーバーからの応答が不正な形式です。");
+            }
+
+            if (handovers.length === 0) {
+                 handoverListTableWrapper.innerHTML = '<p class="text-sm text-gray-500 px-3 py-2">利用可能な引き継ぎデータはありません。</p>';
+                 return; // finally は実行される
+            }
+
+            // テーブルを生成
+            let tableHTML = '<table id="handover-list-table" class="w-full text-sm border-collapse"><thead><tr class="bg-gray-100"><th class="border p-2 text-left">引継元担当者</th><th class="border p-2 text-left">保存日時</th></tr></thead><tbody>';
+            handovers.forEach(h => {
+                const formattedDate = h.timestamp ? new Date(h.timestamp).toLocaleString('ja-JP', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '不明';
+                // XSS対策のため、表示するデータはエスケープするのが望ましい（サーバーサイドで行うか、JSで簡易的に）
+                const escapedSourceTantosha = h.source_tantosha ? String(h.source_tantosha).replace(/</g, "&lt;").replace(/>/g, "&gt;") : '不明';
+                tableHTML += `<tr data-handover-id="${h.id}" class="hover:bg-gray-100 cursor-pointer"><td class="border p-2">${escapedSourceTantosha}</td><td class="border p-2">${formattedDate}</td></tr>`;
+            });
+            tableHTML += '</tbody></table>';
+            handoverListTableWrapper.innerHTML = tableHTML;
+
+            // テーブル行にクリックイベントを追加
+            document.querySelectorAll('#handover-list-table tbody tr').forEach(row => {
+                row.addEventListener('click', () => {
+                    const handoverId = row.dataset.handoverId;
+                    if (handoverId) {
+                        loadSpecificHandover(handoverId);
+                    } else {
+                        console.error("Handover IDが見つかりません", row);
+                    }
+                });
+            });
+
+        } catch (error) {
+            console.error('引き継ぎリスト取得エラー:', error);
+            handoverListTableWrapper.innerHTML = `<p class="text-sm text-red-600 px-3 py-2">リストの読み込みに失敗しました: ${error.message}</p>`;
+        } finally {
+            loadHandoverListBtn.disabled = false;
+        }
+    });
+
+    // リストを閉じるボタン
+    closeHandoverListBtn.addEventListener('click', () => {
+         handoverListContainer.classList.add('hidden');
+    });
+
+    // --- 3. 特定の引き継ぎデータを読み込む処理 ---
+    async function loadSpecificHandover(handoverId) {
+        console.log(`Loading handover data for ID: ${handoverId}`);
+        handoverListContainer.classList.add('hidden'); // リストを閉じる
+
+        // フォームを一旦リセットするのも良い（前の入力が残らないように）
+        document.getElementById('upload-form').reset();
+        // プレビューもクリア
+        document.getElementById("business-card-preview").innerHTML = "";
+        document.getElementById("hearing-seed-preview").innerHTML = "";
+
+        try {
+             const response = await fetch(`/api/get_handover/${handoverId}`);
+             if (!response.ok) {
+                 // エラーレスポンスもJSON形式を期待
+                 let errorMsg = `サーバーエラー: ${response.statusText}`;
+                 try {
+                    const errData = await response.json();
+                    if (errData.description) errorMsg = errData.description;
+                 } catch(e) { /* JSONパース失敗は無視 */ }
+                 throw new Error(errorMsg);
+             }
+             const data = await response.json();
+
+             if (typeof data !== 'object' || data === null) {
+                 throw new Error("サーバーから無効なデータ形式が返されました。");
+             }
+
+             // フォームにデータを反映
+             document.getElementById('current-situation-input').value = data.current_situation || '';
+             document.getElementById('problem-input').value = data.problem || '';
+             document.getElementById('most-important-need-input').value = data.most_important_need || '';
+             document.getElementById('proposal-content-input').value = data.proposal_content || '';
+             document.getElementById('proposal-plan-input').value = data.proposal_plan || ''; // プランを選択状態にする
+             document.getElementById('consideration-reason-input').value = data.consideration_reason || '';
+             document.getElementById('lead-date-input').value = data.lead_date || '';
+
+             // ★重要: 担当者ドロップダウンはリセット（未選択状態に）
+             document.getElementById('tantosha-input').value = "";
+
+             // 引き継ぎ元情報を表示
+             sourceTantoshaNameSpan.textContent = data.handover_source_tantosha ? String(data.handover_source_tantosha).replace(/</g, "&lt;").replace(/>/g, "&gt;") : '不明';
+             sourceTantoshaInput.value =  sourceTantoshaNameSpan.textContent// Hidden inputに引き継ぎ元担当者を設定
+             handoverSourceInfo.classList.remove('hidden');
+
+             // ★読み込んだ引き継ぎIDをhidden inputに設定
+             deleteHandoverIdInput.value = handoverId;
+
+             alert('引き継ぎデータを読み込みました。\n担当者をご自身の名前に変更し、画像ファイルを選択し直して、入力を続けてください。');
+             // ファイルは引き継がれないため、再選択を促すメッセージを追加
+
+        } catch (error) {
+             console.error('特定引き継ぎデータ取得エラー:', error);
+             alert(`引き継ぎデータの読み込み中にエラーが発生しました: ${error.message}`);
+             handoverSourceInfo.classList.add('hidden');
+             // ★エラー時はhidden inputもクリア
+             deleteHandoverIdInput.value = '';
+             // エラー時はフォームを再度リセットするのも親切かも
+             document.getElementById('upload-form').reset();
+             document.getElementById("business-card-preview").innerHTML = "";
+             document.getElementById("hearing-seed-preview").innerHTML = "";
+        }
+    }
+
+    // --- ▲▲▲ 引き継ぎ機能用 JavaScript ▲▲▲ ---
+
+  </script>
+</body>
+</html>

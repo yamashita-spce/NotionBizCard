@@ -13,7 +13,7 @@ config.read("../config.ini")
 
 
 #public file sever
-UPLOAD_URL = config["HOST_WIN"]["UPLOAD_URL"]
+UPLOAD_URL = config["HOST"]["UPLOAD_URL"]
 
 def remove_files(business_card_input, hearing_seed_inputs):
     os.remove("./uploads/" + os.path.basename(business_card_input))
@@ -21,7 +21,7 @@ def remove_files(business_card_input, hearing_seed_inputs):
         os.remove("./uploads/" + os.path.basename(hearing_seed_input))
         
 
-def main(business_card_input, hearing_seed_inputs, lead_date_str):
+def main(business_card_input, hearing_seed_inputs, lead_date_str, context):
         
         # 0) リモートサーバに画像をアップロード
         unique_id, remote_base = pub_internet.scp_upload_via_key(business_card_input, hearing_seed_inputs)
@@ -33,17 +33,26 @@ def main(business_card_input, hearing_seed_inputs, lead_date_str):
         # 2) notion に送るためのプロパティを組み立てる
         properties = cnp.build_notion_properties(analysis_result, lead_date_str)
 
+        # 3) メール文面の組み立て
+        # message = 
+        
         # 4) Notion APIでページ作成
         page_id = cnp.create_notion_page(properties)
-
+        
         # 5) Notion APIで画像ブロック追加
-        cnp.append_image_blocks(page_id, unique_id, business_card_input, hearing_seed_inputs)
+        rt = cnp.append_image_blocks(page_id, unique_id, business_card_input, hearing_seed_inputs)
 
         # 6) リモートサーバのフォルダを削除
         # pub_internet.delete_remote_folder(unique_id)
         
         # 7) upload ファイルの削除
+        print("upload files remove")
         remove_files(business_card_input, hearing_seed_inputs)
+        
+        if rt == 1:
+            return 1
+        else:
+            return 0
 
 
 if __name__ == "__main__":

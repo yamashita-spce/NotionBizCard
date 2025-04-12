@@ -8,12 +8,12 @@ config = configparser.ConfigParser()
 config.read("../config.ini", encoding="utf-8")
 
 # Notion 
-NOTION_API_TOKEN = config["HOST_WIN"]["NOTION_API_TOKEN"]
-DATABASE_ID = config["HOST_WIN"]["DATABASE_ID"]  # NotionデータベースIDの部分のみ
-NOTION_VERSION = config["HOST_WIN"]["NOTION_VERSION"]
+NOTION_API_TOKEN = config["HOST"]["NOTION_API_TOKEN"]
+DATABASE_ID = config["HOST"]["DATABASE_ID"]  # NotionデータベースIDの部分のみ
+NOTION_VERSION = config["HOST"]["NOTION_VERSION"]
 
 # public file sever
-UPLOAD_URL = config["HOST_WIN"]["UPLOAD_URL"]
+UPLOAD_URL = config["HOST"]["UPLOAD_URL"]
 
 # notion データベースプロパティの組み立て
 def build_notion_properties(business_card_data, lead_date_str):
@@ -273,4 +273,5 @@ def append_image_blocks(page_id, unique_id, card_image, hearing_images):
         return 0
     else:
         print(f"画像ブロック追加エラー: {response.text}")
+        return 1
 
