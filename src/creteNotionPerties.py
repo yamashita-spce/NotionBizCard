@@ -15,8 +15,37 @@ NOTION_VERSION = config["HOST"]["NOTION_VERSION"]
 # public file sever
 UPLOAD_URL = config["HOST"]["UPLOAD_URL"]
 
+def get_perusona(context):
+    """
+    ペルソナを決定する関数。
+    """
+    # ペルソナのマッピング
+    persona_map = {
+        3: "D",
+        4: "C",
+        5: "C",
+        6: "B",
+        7: "B",
+        8: "A",
+        9: "A",
+    }
+    
+    try:
+        needs = int(context.get("needs_value", "").strip())
+        authirity = int(context.get("authority_value", "").strip())
+        timing = int(context.get("timing_value", "").strip())
+        
+    except ValueError:
+        needs = 0
+        authirity = 0
+        timing = 0
+    
+    index = (needs + authirity + timing) 
+    return persona_map.get(index, "D")
+    
+    
 # notion データベースプロパティの組み立て
-def build_notion_properties(business_card_data, lead_date_str):
+def build_notion_properties(business_card_data, lead_date_str, context, message):
     # リード獲得日の変換（例："2025/3/12" → "2025-03-12T00:00:00"）
     lead_date = None
     if lead_date_str:
@@ -97,10 +126,10 @@ def build_notion_properties(business_card_data, lead_date_str):
     else:
         properties["役職"] = {"multi_select": []}
 
-    # ▼ 役職区分: rich_text 型
+    # ▼ 正式役職名: rich_text 型
     role_raw = business_card_data.get("役職区分", "").strip() or title_inferred
     if role_raw:
-        properties["役職区分"] = {
+        properties["正式役職名"] = {
             "rich_text": [
                 {
                     "type": "text",
@@ -109,7 +138,7 @@ def build_notion_properties(business_card_data, lead_date_str):
             ]
         }
     else:
-        properties["役職区分"] = {"rich_text": []}
+        properties["正式役職名"] = {"rich_text": []}
 
     # ▼ 電話番号: phone_number 型
     phone = business_card_data.get("電話番号", "").strip()
@@ -131,17 +160,103 @@ def build_notion_properties(business_card_data, lead_date_str):
     else:
         properties["リード獲得日"] = {"date": None}
 
+    # ▼ 担当者: multi_select 型
+    tantou_list = [
+        context.get("tantosha_value","").strip(), 
+        context.get("source_tantosha","").strip()
+        ]
+    
+    tantou = []
+    for person in tantou_list: 
+        if person: 
+            tantou.append({"name": person})
+    
+    if tantou:
+        properties["担当"] = {"multi_select": tantou}
+    else:
+        properties["担当"] = {"multi_select": [{"name": "担当者不明"}]}
+    
+    # 商談メモ: rich_text 型
+    memo_items = {
+    'current_situation_value': '現状',
+    'problem_value': '課題',
+    'most_important_need_value': '最重要ニーズ',
+    'proposal_content_value': '提案内容',
+    'consideration_reason_value': '検討理由'
+    }
+    # メモの内容を生成
+    memo_content_lines = []
+    for key, label in memo_items.items():
+        value = context.get(key) # .get()でキーが存在しない場合もエラーにしない
+        if value: # 値が存在する場合のみ追加
+            memo_content_lines.append(f"■{label}\n{value}\n") # 見出しと改行を追加
+    
+    # 全ての行を結合（各項目の後に空行を入れる）
+    memo_full_content = "\n".join(memo_content_lines).strip() # 末尾の不要な改行を削除
+    
+    if memo_full_content:
+        properties["メモ"] = {
+            "rich_text": [
+                {
+                    "type": "text",
+                    "text": {"content": memo_full_content}
+                }
+            ]
+        }
+    else:
+        properties["メモ"] = {"rich_text": []}
+    
+    
+    # ▼ メールタイトル: Rich text 型
+    print(f"Received message type: {type(message)}")
+    
+    mail_title = message.get("タイトル", "")
+
+    if mail_title:
+        properties["メールタイトル"] = {
+            "rich_text": [
+                {
+                    "type": "text",
+                    "text": {"content": mail_title}
+                }
+            ]
+        }
+    else:
+        properties["メールタイトル"] = {"rich_text": []}
+    
+    
+    # ▼ メールタイトル: Rich text 型
+    mail_body = message.get("本文", "")
+
+    if mail_body:
+        properties["メール本文"] = {
+            "rich_text": [
+                {
+                    "type": "text",
+                    "text": {"content": mail_body}
+                }
+            ]
+        }
+    else:
+        properties["メール本文"] = {"rich_text": []}
+        
+        
+    # ▼ 製品: multi select 型
+    product = context.get("proposal_plan_value", "")
+    if product:
+        properties["製品"] = {"multi_select": [{"name": product}]}
+    else:
+        properties["製品"] = {"multi_select": []}
+        
+    
     # ▼ 以下、空欄の項目は Notion の型に合わせたデフォルト値
     properties["タグ"] = {"select": {"name": "展示会"}}
-    properties["リードステータス"] = {"status": None}
-    properties["担当"] = {"people": []}
-    properties["商談メモ"] = {"rich_text": []}
-    properties["ペルソナ"] = {"select": None}
+    properties["ステータス"] = {"multi_select": [{"name": "メール予定"}]}
+    properties["ペルソナ"] = {"select": {"name": get_perusona(context)}}
     properties["商談ステータス"] = {"status": None}
     properties["次アクション"] = {"rich_text": []}
     properties["BANT"] = {"rich_text": []}
     properties["契約開始日"] = {"date": None}
-    properties["製品"] = {"multi_select": []}
     properties["契約プラン"] = {"select": None}
     properties["料金形態"] = {"select": None}
     properties["割引"] = {"number": None}

@@ -1,0 +1,20 @@
+{
+    'message': '不明なエラーが発生しました。', 
+    'success': '0', 
+    'assignees_list': ['山田 太郎', '佐藤 花子', '鈴木 一郎', '高橋 次郎', '渡辺 三郎', '田中 良子', '伊藤 健太', 'その他'], 
+    'proposal_plan_list': ['mocoVoice Web Starter', 'mocoVoice Web Standard', 'mocoVoice Web Business', 'mocoVoice Web Enterprise', 'mocoVoice API', 'mocoコンサル', 'mocoDrive', 'mocoDataset', 'mocoToolkit', 'その他'],
+    'persona_options': {'needs': [('3', '高'), ('2', '中'), ('1', '低')], 
+    'authority': [('3', '部長以上'), ('2', '課長以上'), ('1', '一般社員')], 'timing': [('3', '1-3ヶ月以内'), ('2', '3-12ヶ月以内'), ('1', '不明・未定')]}, 
+    'tantosha_value': '佐藤 花子', 
+    'proposal_plan_value': 'mocoVoice Web Business',
+    'current_situation_value': 'クラウド事業', 
+    'problem_value': '議事録がめんどくさい', 
+    'most_important_need_value': '議事録の自動化',
+    'proposal_content_value': '',
+    'consideration_reason_value': 'まだ社内で検討する', 
+    'lead_date_value': '', 
+    'needs_value': '3', 
+    'authority_value': '2', 
+    'timing_value': '3', 
+    'source_tantosha': ''
+    }

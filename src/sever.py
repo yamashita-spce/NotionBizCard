@@ -34,13 +34,12 @@ app.secret_key = os.environ.get('FLASK_SECRET_KEY', os.urandom(24))
 UPLOAD_FOLDER = 'uploads'
 HANDOVER_DIR = 'handovers'
 ASSIGNESS_LIST = [
-    "山田 太郎", "佐藤 花子", "鈴木 一郎", "高橋 次郎",
-    "渡辺 三郎", "田中 良子", "伊藤 健太", "その他"
+    "田中康紀", "大西一誉", "阪本浩太郎", "飯田昌直", "飯田昌哉", 
+    "山下一樹", "笹木将太", "神宇知一樹", "その他"
 ]
 PLAN_LIST = [
-    "mocoVoice Web Starter", "mocoVoice Web Standard", "mocoVoice Web Business",
-    "mocoVoice Web Enterprise", "mocoVoice API", "mocoコンサル", "mocoDrive",
-    "mocoDataset", "mocoToolkit", "その他",
+    "受託開発", "mocoVoice Web（書き起こし・議事録）", "mocoVoice Webフルバージョン",
+    "mocoDataset", "mocoDrive", "リアルタイム音声認識", "mocoVoice API", "その他", 
 ]
 
 PERSONA_OPTIONS = {
@@ -125,7 +124,7 @@ def index():
             'source_tantosha': request.form.get('source_tantosha', ''), # 引き継ぎ元担当者 (name="source_tantosha")
          }
         
-        print (f"Received form data: {context}") # デバッグ用ログ
+        # print (f"Received form data: {context}") # デバッグ用ログ
         
         session['last_tantosha'] = context['tantosha_value'] # セッションも更新
 
@@ -140,11 +139,12 @@ def index():
         lead_date = None
 
         try:
-            
             # 2. バリデーション
             if not context['tantosha_value']: raise ValueError("担当者名が選択されていません。")
             if not context['proposal_plan_value']: raise ValueError("提案プランが選択されていません。")
-            
+            if not context['needs_value']: raise ValueError("ニーズが選択されていません。")
+            if not context['authority_value']: raise ValueError("決裁権が選択されていません。")
+            if not context['timing_value']: raise ValueError("導入時期が選択されていません。")
 
             # 3. 日付処理
             raw_date = context['lead_date_value']
