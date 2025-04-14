@@ -6,11 +6,11 @@ import configparser
 import ocr
 import pub_internet
 import creteNotionPerties as cnp
+import create_gmail as gm
 
 # 環境変数の設定
 config = configparser.ConfigParser()
 config.read("../config.ini")
-
 
 #public file sever
 UPLOAD_URL = config["HOST"]["UPLOAD_URL"]
@@ -34,7 +34,11 @@ def main(business_card_input, hearing_seed_inputs, lead_date_str, context):
         properties = cnp.build_notion_properties(analysis_result, lead_date_str)
 
         # 3) メール文面の組み立て
-        # message = 
+        message = gm.generate_email_with_gemini(
+            context,
+            analysis_result,
+            exhibition_name="業務改善EXPO"
+        )
         
         # 4) Notion APIでページ作成
         page_id = cnp.create_notion_page(properties)
