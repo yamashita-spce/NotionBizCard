@@ -7,7 +7,7 @@ import configparser
 
 # --- 設定 ---
 config = configparser.ConfigParser()
-config.read("../config.ini", encoding="utf-8")
+config.read("config.ini", encoding="utf-8")
 
 API_KEY = config["HOST"]["GEMINI_TOKEN"]  # Gemini APIキー
 MODEL_NAME = config["HOST"]["GEMINI_MODEL"]  # 使用するGeminiモデル名

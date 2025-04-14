@@ -40,8 +40,16 @@ pyte uninstall 3.12.6/envs/NotionBizCard
 - config.iniでapiキー，データベースIDなどの変更が可能
 1. Webサーバーを立ち上げる
 ```Shell
-(NotionBizCard) python web_server.py
+(NotionBizCard) python server.py
 ```
 2. ブラウザから，127.0.0.1:5001 もしくは，ローカルIP:5001でアクセス
 3. APIキー，データベースIDを設定の上，画像をアップロードし実行
 4. Webサーバーの終了 ctrl+C
+5. gmailの下書きを作成
+
+
+# 各種ファイル構成
+- feature/separete　では，notion登録と，gmail作成でフェーズを分ける. 一気にやると動作が重い．
+
+
+
