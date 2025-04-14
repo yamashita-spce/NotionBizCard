@@ -5,7 +5,7 @@ import os
 
 
 config = configparser.ConfigParser()
-config.read("../config.ini", encoding="utf-8")
+config.read("config.ini", encoding="utf-8")
 
 # Notion 
 NOTION_API_TOKEN = config["HOST"]["NOTION_API_TOKEN"]
@@ -45,7 +45,7 @@ def get_perusona(context):
     
     
 # notion データベースプロパティの組み立て
-def build_notion_properties(business_card_data, lead_date_str, context, message):
+def build_notion_properties(business_card_data, lead_date_str, context):
     # リード獲得日の変換（例："2025/3/12" → "2025-03-12T00:00:00"）
     lead_date = None
     if lead_date_str:
@@ -177,6 +177,79 @@ def build_notion_properties(business_card_data, lead_date_str, context, message)
         properties["担当"] = {"multi_select": [{"name": "担当者不明"}]}
     
     # 商談メモ: rich_text 型
+    # 商談メモを「現状」「課題」「最重要ニーズ」「提案内容」「検討理由」で分ける
+    # メールはここでは作成しない
+    memo = {"現状": context.get("current_situation_value", ""),
+            "問題": context.get("problem_value", ""),
+            "最重要ニーズ": context.get("most_important_need_value", ""),
+            "提案内容": context.get("proposal_content_value"),
+            "検討理由": context.get("consideration_reason_value")
+            }
+    
+    if memo.get("現状"):
+        properties["ヒアリング：現状"] = {
+            "rich_text": [
+                {
+                    "type": "text",
+                    "text": {"content": memo.get("現状")}
+                }
+            ]
+        }
+    else: 
+        properties["ヒアリング：現状"] = {"rich_text": []}
+    
+    if memo.get("問題"):
+        properties["ヒアリング：問題"] = {
+            "rich_text": [
+                {
+                    "type": "text",
+                    "text": {"content": memo.get("問題")}
+                }
+            ]
+        }
+    else: 
+        properties["ヒアリング：問題"] = {"rich_text": []}
+        
+    if memo.get("最重要ニーズ"):
+        properties["ヒアリング：ニーズ"] = {
+            "rich_text": [
+                {
+                    "type": "text",
+                    "text": {"content": memo.get("最重要ニーズ")}
+                }
+            ]
+        }
+    else: 
+        properties["ヒアリング：ニーズ"] = {"rich_text": []}
+        
+    if memo.get("提案内容"):
+        properties["提案内容"] = {
+            "rich_text": [
+                {
+                    "type": "text",
+                    "text": {"content": memo.get("提案内容")}
+                }
+            ]
+        }
+    else: 
+        properties["提案内容"] = {"rich_text": []}
+        
+    if memo.get("検討理由"):
+        properties["検討理由"] = {
+            "rich_text": [
+                {
+                    "type": "text",
+                    "text": {"content": memo.get("検討理由")}
+                }
+            ]
+        }
+    else: 
+        properties["検討理由"] = {"rich_text": []}
+    
+    
+    
+    
+    """
     memo_items = {
     'current_situation_value': '現状',
     'problem_value': '課題',
@@ -239,7 +312,9 @@ def build_notion_properties(business_card_data, lead_date_str, context, message)
         }
     else:
         properties["メール本文"] = {"rich_text": []}
-        
+    
+    """
+    
         
     # ▼ 製品: multi select 型
     product = context.get("proposal_plan_value", "")
