@@ -143,16 +143,12 @@ def generate_email_with_gemini(context, recipient_details, exhibition_name="[展
         
         result_json["本文"] += text_block # 固定テキストを追加
         
-        return json.dumps(result_json, ensure_ascii=False, indent=2), total_tokens
+        return result_json, total_tokens
 
     except Exception as e:
         print(f"[ERROR] Gemini API の呼び出しまたは処理中にエラーが発生しました:", e)
         # traceback.print_exc() # 詳細なトレースバックが必要な場合
         return json.dumps({"error": f"メール生成中に予期せぬエラーが発生しました: {e}"}, ensure_ascii=False, indent=2), 0
-
-
-
-
 
 
 
@@ -197,7 +193,7 @@ context_empty = {
 }
 
 # --- 実行例 ---
-if __name__ == "__main__":# または "gemini-1.5-pro-latest" など
+if __name__ == "__main__":
 
     print("\n--- 詳細情報がある場合のメール生成例 ---")
     email_json, tokens_filled = generate_email_with_gemini(

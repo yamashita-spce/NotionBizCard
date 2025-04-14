@@ -30,16 +30,16 @@ def main(business_card_input, hearing_seed_inputs, lead_date_str, context):
         url = UPLOAD_URL + unique_id + "/card/" + os.path.basename(business_card_input)
         analysis_result = ocr.ocr_image_from_url(url)
 
-        # 2) notion に送るためのプロパティを組み立てる
-        properties = cnp.build_notion_properties(analysis_result, lead_date_str)
-
-        # 3) メール文面の組み立て
-        message = gm.generate_email_with_gemini(
+        # 2) メール文面の組み立て
+        message, tokens = gm.generate_email_with_gemini(
             context,
             analysis_result,
             exhibition_name="業務改善EXPO"
         )
         
+        # 3) notion に送るためのプロパティを組み立てる
+        properties = cnp.build_notion_properties(analysis_result, lead_date_str, context, message)
+
         # 4) Notion APIでページ作成
         page_id = cnp.create_notion_page(properties)
         
