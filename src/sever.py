@@ -43,6 +43,24 @@ PLAN_LIST = [
     "mocoDataset", "mocoToolkit", "その他",
 ]
 
+PERSONA_OPTIONS = {
+    'needs': [
+        ('3', '高'),
+        ('2', '中'),
+        ('1', '低'),
+    ],
+    'authority': [
+        ('3', '部長以上'),
+        ('2', '課長以上'),
+        ('1', '一般社員'),
+    ],
+    'timing': [
+        ('3', '1-3ヶ月以内'),
+        ('2', '3-12ヶ月以内'),
+        ('1', '不明・未定'),
+    ]
+}
+
 # --- ディレクトリ作成 ---
 if not os.path.exists(UPLOAD_FOLDER): os.makedirs(UPLOAD_FOLDER)
 if not os.path.exists(HANDOVER_DIR): os.makedirs(HANDOVER_DIR)
@@ -77,6 +95,7 @@ def uploaded_file(filename):
     except FileNotFoundError:
         abort(404)
 
+
 # --- メインのフォーム表示・処理ルート ---
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -84,19 +103,30 @@ def index():
     if request.method == "POST":
         # 1. コンテキスト辞書の初期化
         context = {
+            # 1. 初期値の設定
             'message': "不明なエラーが発生しました。",
-            'success': "0",
-            'tantosha_value': request.form.get("tantosha", ""), # POSTされた値で初期化
+            'success': "0", # POSTされた値で初期化
             'assignees_list': ASSIGNESS_LIST,
             'proposal_plan_list': PLAN_LIST,
-            'proposal_plan_value': request.form.get('proposal_plan', ''),
-            'current_situation_value': request.form.get('current_situation', ''),
-            'problem_value': request.form.get('problem', ''),
-            'most_important_need_value': request.form.get('most_important_need', ''),
-            'proposal_content_value': request.form.get('proposal_content', ''),
-            'consideration_reason_value': request.form.get('consideration_reason', ''),
-            'lead_date_value': request.form.get("lead_date", "").strip(),
+            'persona_options': PERSONA_OPTIONS,
+            
+            # 2. フォームデータの取得
+            'tantosha_value': request.form.get("tantosha", ""), # 担当者 (name="tantosha")
+            'proposal_plan_value': request.form.get('proposal_plan', ''), # 提案プラン (name="proposal_plan")
+            'current_situation_value': request.form.get('current_situation', ''), # 現状 (name="current_situation")
+            'problem_value': request.form.get('problem', ''), # 問題 (name="problem")
+            'most_important_need_value': request.form.get('most_important_need', ''), # 最重要ニーズ (name="most_important_need")
+            'proposal_content_value': request.form.get('proposal_content', ''), # 提案内容 (name="proposal_content")
+            'consideration_reason_value': request.form.get('consideration_reason', ''), # 検討理由 (name="consideration_reason")
+            'lead_date_value': request.form.get("lead_date", "").strip(), # リード獲得日 (name="lead_date")
+            'needs_value': request.form.get('needs', ''),         # ニーズ (name="needs")
+            'authority_value': request.form.get('authority', ''), # 決裁権 (name="authority")
+            'timing_value': request.form.get('timing', ''),       # 導入時期 (name="timing")
+            'source_tantosha': request.form.get('source_tantosha', ''), # 引き継ぎ元担当者 (name="source_tantosha")
          }
+        
+        print (f"Received form data: {context}") # デバッグ用ログ
+        
         session['last_tantosha'] = context['tantosha_value'] # セッションも更新
 
         handover_id_to_delete = request.form.get('delete_handover_id')
@@ -110,9 +140,11 @@ def index():
         lead_date = None
 
         try:
+            
             # 2. バリデーション
             if not context['tantosha_value']: raise ValueError("担当者名が選択されていません。")
             if not context['proposal_plan_value']: raise ValueError("提案プランが選択されていません。")
+            
 
             # 3. 日付処理
             raw_date = context['lead_date_value']
@@ -196,6 +228,7 @@ def index():
             print(f"!!! Processing Error: {e} !!!")
             import traceback
             traceback.print_exc()
+            
         finally:
             # 後処理: 一時ファイルの削除
             for temp_file in temp_files_to_delete:
@@ -210,7 +243,7 @@ def index():
         if processing_successful:
             # 成功時: 引き継ぎファイル削除
             if handover_id_to_delete:
-                 # (ファイル削除ロジック - 変更なし)
+                 # (ファイル削除ロジック)
                 if handover_id_to_delete and '..' not in handover_id_to_delete and '/' not in handover_id_to_delete and '\\' not in handover_id_to_delete:
                     filepath_to_delete = os.path.join(HANDOVER_DIR, f"{handover_id_to_delete}.json")
                     try:
@@ -225,12 +258,13 @@ def index():
                     print(f"Invalid handover ID format received for deletion: '{handover_id_to_delete}'")
             # 成功時はリダイレクト (PRGパターン)
             return redirect(url_for("index", message=context['message'], success=context['success']))
+        
         else:
             # ★★★ 失敗時: 入力値を保持してフォームを再レンダリング ★★★
             # (contextにはフォームの値とエラーメッセージが含まれている)
             return render_template('index.html', **context)
 
-    # --- GETリクエストの処理 (変更なし) ---
+    # --- GETリクエストの処理 ---
     else:
         # GETリクエスト用のコンテキストを初期化
         context = {
@@ -239,6 +273,8 @@ def index():
             'tantosha_value': session.get('last_tantosha', ''),
             'assignees_list': ASSIGNESS_LIST,
             'proposal_plan_list': PLAN_LIST,
+            'persona_options': PERSONA_OPTIONS,
+            
             'proposal_plan_value': request.args.get('proposal_plan', ''),
             'current_situation_value': request.args.get('current_situation', ''),
             'problem_value': request.args.get('problem', ''),
@@ -246,64 +282,161 @@ def index():
             'proposal_content_value': request.args.get('proposal_content', ''),
             'consideration_reason_value': request.args.get('consideration_reason', ''),
             'lead_date_value': request.args.get('lead_date', ''),
+            'needs_value': request.args.get('needs', ''),
+            'authority_value': request.form.get('authority', ''),
+            'timing_value': request.form.get('timing', ''),
+            'source_tantosha': request.form.get('source_tantosha', ''),
          }
         return render_template('index.html', **context)
+
 
 # --- 引き継ぎ機能 API エンドポイント (変更なし) ---
 @app.route('/api/save_handover', methods=['POST'])
 def save_handover():
-    # ... (前の回答と同じコード) ...
-    if not request.is_json: return jsonify({'status': 'error', 'message': 'リクエスト形式が不正です(JSONではありません)'}), 400
+    
+    if not request.is_json: 
+        return jsonify({'status': 'error', 'message': 'リクエスト形式が不正です(JSONではありません)'}), 400
+    
     data = request.get_json()
-    if not data: return jsonify({'status': 'error', 'message': 'データが含まれていません'}), 400
-    if not data.get('handover_source_tantosha'): return jsonify({'status': 'error', 'message': '担当者が選択されていません'}), 400
+    if not data: 
+        return jsonify({'status': 'error', 'message': 'データが含まれていません'}), 400
+    
+    if not data.get('handover_source_tantosha'): 
+        return jsonify({'status': 'error', 'message': '担当者が選択されていません'}), 400
+    
     handover_id = str(uuid.uuid4())
     data['handover_timestamp'] = datetime.now().isoformat()
+    
     filename = f"{handover_id}.json"
     filepath = os.path.join(HANDOVER_DIR, filename)
+    
     if os.path.dirname(os.path.abspath(filepath)) != os.path.abspath(HANDOVER_DIR): return jsonify({'status': 'error', 'message': '内部エラーが発生しました'}), 500
+    
     try:
-        with open(filepath, 'w', encoding='utf-8') as f: json.dump(data, f, ensure_ascii=False, indent=4)
+        with open(filepath, 'w', encoding='utf-8') as f: 
+            json.dump(data, f, ensure_ascii=False, indent=4)
+            
         print(f"Saved handover data to: {filepath}")
+        
         return jsonify({'status': 'success', 'id': handover_id})
-    except IOError as e: print(f"Error saving handover file {filepath}: {e}"); return jsonify({'status': 'error', 'message': 'データの保存に失敗しました'}), 500
-    except Exception as e: print(f"Unexpected error saving handover file {filepath}: {e}"); return jsonify({'status': 'error', 'message': '予期せぬエラーが発生しました'}), 500
+    
+    except IOError as e: 
+        print(f"Error saving handover file {filepath}: {e}"); 
+        return jsonify({'status': 'error', 'message': 'データの保存に失敗しました'}), 500
+    
+    except Exception as e: 
+        print(f"Unexpected error saving handover file {filepath}: {e}"); 
+        return jsonify({'status': 'error', 'message': '予期せぬエラーが発生しました'}), 500
 
+
+# --- 引き継ぎデータのリスト取得 API エンドポイント ---
 @app.route('/api/list_handovers', methods=['GET'])
 def list_handovers():
-    # ... (前の回答と同じコード) ...
+
     handovers = []
     try:
         for filename in os.listdir(HANDOVER_DIR):
             if filename.endswith(".json"):
-                try: uuid.UUID(filename[:-5], version=4)
-                except ValueError: continue
+                try:
+                    uuid.UUID(filename[:-5], version=4)
+                except ValueError: 
+                    continue
+                
                 filepath = os.path.join(HANDOVER_DIR, filename)
+                
                 try:
                     with open(filepath, 'r', encoding='utf-8') as f: data = json.load(f)
                     handovers.append({'id': filename[:-5],'source_tantosha': data.get('handover_source_tantosha', '不明'),'timestamp': data.get('handover_timestamp')})
+                
                 except Exception as e: print(f"Err reading {filename}: {e}")
         handovers.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
         return jsonify(handovers)
+    
     except FileNotFoundError: return jsonify([])
     except Exception as e: print(f"Error listing handovers: {e}"); return jsonify({'status': 'error', 'message': 'リストの取得に失敗しました'}), 500
 
 
+# --- 引き継ぎデータの取得 API エンドポイント ---
 @app.route('/api/get_handover/<string:handover_id>', methods=['GET'])
 def get_handover(handover_id):
-    # ... (前の回答と同じコード) ...
-    try: uuid.UUID(handover_id, version=4)
-    except ValueError: return jsonify({'status': 'error', 'message': '無効なID形式です'}), 400
+    try: 
+        uuid.UUID(handover_id, version=4)
+    except ValueError:
+        return jsonify({'status': 'error', 'message': '無効なID形式です'}), 400
+    
     filename = f"{handover_id}.json"
     filepath = os.path.join(HANDOVER_DIR, filename)
-    if os.path.dirname(os.path.abspath(filepath)) != os.path.abspath(HANDOVER_DIR): abort(400)
-    if not os.path.exists(filepath): return jsonify({'status': 'error', 'message': '指定された引き継ぎデータが見つかりません'}), 404
+    
+    if os.path.dirname(os.path.abspath(filepath)) != os.path.abspath(HANDOVER_DIR): 
+        abort(400)
+        
+    if not os.path.exists(filepath): 
+        return jsonify({'status': 'error', 'message': '指定された引き継ぎデータが見つかりません'}), 404
+    
     try:
         with open(filepath, 'r', encoding='utf-8') as f: data = json.load(f)
         return jsonify(data)
-    except json.JSONDecodeError: return jsonify({'status': 'error', 'message': 'データの形式が不正です'}), 500
-    except Exception as e: print(f"Error getting handover file {handover_id}: {e}"); return jsonify({'status': 'error', 'message': 'データの取得に失敗しました'}), 500
+    
+    except json.JSONDecodeError: 
+        return jsonify({'status': 'error', 'message': 'データの形式が不正です'}), 500
+    
+    except Exception as e: 
+        print(f"Error getting handover file {handover_id}: {e}"); 
+        return jsonify({'status': 'error', 'message': 'データの取得に失敗しました'}), 500
 
+
+# --- 引き継ぎデータの削除 API エンドポイント ---
+@app.route('/api/delete_handover/<string:handover_id>', methods=['DELETE'])
+def delete_handover_api(handover_id):
+    """
+    指定されたIDの引き継ぎデータ（JSONファイル）を削除するAPIエンドポイント。
+    JavaScriptから直接呼び出されることを想定。
+    """
+    print(f"[API] Received DELETE request for handover ID: {handover_id}") # ログ
+
+    # 1. ID形式 (UUID v4) の検証
+    try:
+        uuid.UUID(handover_id, version=4)
+    except ValueError:
+        print(f"[API Error] Invalid UUID format for deletion: {handover_id}")
+        return jsonify({'status': 'error', 'message': '無効な引き継ぎID形式です。'}), 400 # Bad Request
+
+    # 2. ファイルパスの構築と安全性の確認
+    filename = f"{handover_id}.json"
+    filepath = os.path.join(HANDOVER_DIR, filename)
+
+    # ディレクトリトラバーサル防止 (save/get と同じチェック)
+    if os.path.dirname(os.path.abspath(filepath)) != os.path.abspath(HANDOVER_DIR):
+        print(f"[API Security Error] Path traversal attempt detected for ID: {handover_id}")
+        # abort(400) の代わりにJSONレスポンスを返す
+        return jsonify({'status': 'error', 'message': '不正な引き継ぎIDです。'}), 400 # Bad Request
+
+    print(f"[API] Attempting to delete file: {filepath}") # ログ
+
+    # 3. ファイルの存在確認と削除処理
+    try:
+        if os.path.exists(filepath):
+            os.remove(filepath)
+            print(f"[API] Successfully deleted handover file: {filepath}") # ログ
+            # 成功レスポンス
+            return jsonify({'status': 'success', 'message': '引き継ぎデータを削除しました。'}), 200
+        else:
+            # ファイルが見つからない場合
+            print(f"[API Warn] Handover file not found for deletion: {filepath}") # ログ
+            return jsonify({'status': 'error', 'message': '指定された引き継ぎデータが見つかりません。'}), 404 # Not Found
+
+    except OSError as e:
+        # ファイル削除時のOSエラー（例: パーミッション不足）
+        print(f"[API Error] OSError deleting file {filepath}: {e}") # エラーログ
+        return jsonify({'status': 'error', 'message': f'ファイルの削除に失敗しました: {e.strerror}'}), 500 # Internal Server Error
+    except Exception as e:
+        # その他の予期せぬエラー
+        print(f"[API Error] Unexpected error deleting file {filepath}: {e}") # エラーログ
+        import traceback
+        traceback.print_exc() # 詳細なトレースバックを出力
+        return jsonify({'status': 'error', 'message': '予期せぬエラーが発生し、削除に失敗しました。'}), 500 # Internal Server Error
+    
+    
 # --- サーバー起動 ---
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5001))
