@@ -5,7 +5,7 @@ import os
 
 
 config = configparser.ConfigParser()
-config.read("config.ini", encoding="utf-8")
+config.read("../config.ini", encoding="utf-8")
 
 # Notion 
 NOTION_API_TOKEN = config["HOST"]["NOTION_API_TOKEN"]
@@ -245,8 +245,6 @@ def build_notion_properties(business_card_data, lead_date_str, context):
         }
     else: 
         properties["検討理由"] = {"rich_text": []}
-    
-    
     
     
     """
