@@ -250,7 +250,7 @@ def build_notion_properties(business_card_data, lead_date_str, context, message)
         
     
     # ▼ 以下、空欄の項目は Notion の型に合わせたデフォルト値
-    properties["タグ"] = {"select": {"name": "展示会"}}
+    properties["タグ"] = {"select": {"name": "NexTech"}}
     properties["ステータス"] = {"multi_select": [{"name": "メール予定"}]}
     properties["ペルソナ"] = {"select": {"name": get_perusona(context)}}
     properties["商談ステータス"] = {"status": None}
