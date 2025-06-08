@@ -10,7 +10,9 @@ import creteNotionPerties as cnp
 
 # 環境変数の設定
 config = configparser.ConfigParser()
-config.read("")
+# 現在のスクリプトの場所を基準に設定ファイルのパスを決定
+config_path = os.path.join(os.path.dirname(__file__), "..", "..", "config.ini")
+config.read(config_path, encoding="utf-8")
 
 #public file sever
 UPLOAD_URL = config["HOST"]["UPLOAD_URL"]
