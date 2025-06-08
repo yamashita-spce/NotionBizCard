@@ -61,15 +61,26 @@ def ocr_image_from_url(image_url) -> str:
             }],
         )
            
-        response = remove_code_block_fences(response.choices[0].message.content)
+        response_text = response.choices[0].message.content
+        print("OCR生レスポンス:", response_text)
         
-        print("OCR抽出結果:", response)
+        # GPTが拒否した場合の処理
+        if "I'm sorry" in response_text or "I can't" in response_text:
+            print("[警告] GPT-4oがリクエストを拒否しました。空のデータを返します。")
+            return {}
+        
+        response_clean = remove_code_block_fences(response_text)
+        print("OCR抽出結果:", response_clean)
 
-        return json.loads(response)
+        return json.loads(response_clean)
     
+    except json.JSONDecodeError as je:
+        print(f"OCR JSONパースエラー: {je}")
+        print(f"レスポンス内容: {response_text if 'response_text' in locals() else 'N/A'}")
+        return {}
     except Exception as e:
         print("OCRエラー:", e)
-        return None
+        return {}
 
 def remove_code_block_fences(s: str) -> str:
     """

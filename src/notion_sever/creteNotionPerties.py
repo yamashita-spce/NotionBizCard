@@ -92,55 +92,33 @@ def build_notion_properties(business_card_data, lead_date_str, context):
     else:
         properties["担当者氏名"] = {"rich_text": []}
 
-    # ▼ 業種: select 型
-    industry = business_card_data.get("業種", "").strip()
-    if industry:
-        properties["業種"] = {"select": {"name": industry}}
-    else:
-        properties["業種"] = {"select": None}
-
-    # ▼ 部署: multi_select 型
+    # ▼ 部署名: rich_text 型
     department = business_card_data.get("部署", "").strip()
     if department:
-        properties["部署"] = {"multi_select": [{"name": department}]}
-    else:
-        properties["部署"] = {"multi_select": []}
-
-    # ▼ 正式部署名: Rich text 型
-    dept_raw = business_card_data.get("正式部署名", "").strip()
-
-    if dept_raw:
-        properties["正式部署名"] = {
+        properties["部署名"] = {
             "rich_text": [
                 {
                     "type": "text",
-                    "text": {"content": dept_raw}
+                    "text": {"content": department}
                 }
             ]
         }
     else:
-        properties["正式部署名"] = {"rich_text": []}
+        properties["部署名"] = {"rich_text": []}
 
-    # ▼ 役職: multi_select 型
+    # ▼ 役職名: rich_text 型
     title_inferred = business_card_data.get("役職", "").strip()
     if title_inferred:
-        properties["役職"] = {"multi_select": [{"name": title_inferred}]}
-    else:
-        properties["役職"] = {"multi_select": []}
-
-    # ▼ 正式役職名: rich_text 型
-    role_raw = business_card_data.get("役職区分", "").strip() or title_inferred
-    if role_raw:
-        properties["正式役職名"] = {
+        properties["役職名"] = {
             "rich_text": [
                 {
                     "type": "text",
-                    "text": {"content": role_raw}
+                    "text": {"content": title_inferred}
                 }
             ]
         }
     else:
-        properties["正式役職名"] = {"rich_text": []}
+        properties["役職名"] = {"rich_text": []}
 
     # ▼ 電話番号: phone_number 型
     phone = business_card_data.get("電話番号", "").strip()
@@ -178,97 +156,27 @@ def build_notion_properties(business_card_data, lead_date_str, context):
     else:
         properties["担当"] = {"multi_select": [{"name": "担当者不明"}]}
     
-    # 商談メモ: rich_text 型
-    # 商談メモを「現状」「課題」「最重要ニーズ」「提案内容」「検討理由」で分ける
-    # メールはここでは作成しない
-    memo = {"現状": context.get("current_situation_value", ""),
-            "問題": context.get("problem_value", ""),
-            "最重要ニーズ": context.get("most_important_need_value", ""),
-            "提案内容": context.get("proposal_content_value"),
-            "検討理由": context.get("consideration_reason_value")
-            }
-    
-    if memo.get("現状"):
-        properties["ヒアリング：現状"] = {
-            "rich_text": [
-                {
-                    "type": "text",
-                    "text": {"content": memo.get("現状")}
-                }
-            ]
-        }
-    else: 
-        properties["ヒアリング：現状"] = {"rich_text": []}
-    
-    if memo.get("問題"):
-        properties["ヒアリング：問題"] = {
-            "rich_text": [
-                {
-                    "type": "text",
-                    "text": {"content": memo.get("問題")}
-                }
-            ]
-        }
-    else: 
-        properties["ヒアリング：問題"] = {"rich_text": []}
-        
-    if memo.get("最重要ニーズ"):
-        properties["ヒアリング：ニーズ"] = {
-            "rich_text": [
-                {
-                    "type": "text",
-                    "text": {"content": memo.get("最重要ニーズ")}
-                }
-            ]
-        }
-    else: 
-        properties["ヒアリング：ニーズ"] = {"rich_text": []}
-        
-    if memo.get("提案内容"):
-        properties["提案内容"] = {
-            "rich_text": [
-                {
-                    "type": "text",
-                    "text": {"content": memo.get("提案内容")}
-                }
-            ]
-        }
-    else: 
-        properties["提案内容"] = {"rich_text": []}
-        
-    if memo.get("検討理由"):
-        properties["検討理由"] = {
-            "rich_text": [
-                {
-                    "type": "text",
-                    "text": {"content": memo.get("検討理由")}
-                }
-            ]
-        }
-    else: 
-        properties["検討理由"] = {"rich_text": []}
-    
-    
-    """
+    # ▼ ヒアリングメモ: rich_text 型（統合されたヒアリング情報）
     memo_items = {
-    'current_situation_value': '現状',
-    'problem_value': '課題',
-    'most_important_need_value': '最重要ニーズ',
-    'proposal_content_value': '提案内容',
-    'consideration_reason_value': '検討理由'
+        'current_situation_value': '現状',
+        'problem_value': '問題',
+        'most_important_need_value': '最重要ニーズ',
+        'proposal_content_value': '提案内容',
+        'consideration_reason_value': '検討理由'
     }
+    
     # メモの内容を生成
     memo_content_lines = []
     for key, label in memo_items.items():
-        value = context.get(key) # .get()でキーが存在しない場合もエラーにしない
-        if value: # 値が存在する場合のみ追加
-            memo_content_lines.append(f"■{label}\n{value}\n") # 見出しと改行を追加
+        value = context.get(key, "").strip()
+        if value:
+            memo_content_lines.append(f"■{label}\n{value}")
     
     # 全ての行を結合（各項目の後に空行を入れる）
-    memo_full_content = "\n".join(memo_content_lines).strip() # 末尾の不要な改行を削除
+    memo_full_content = "\n\n".join(memo_content_lines)
     
     if memo_full_content:
-        properties["メモ"] = {
+        properties["ヒアリングメモ"] = {
             "rich_text": [
                 {
                     "type": "text",
@@ -277,43 +185,21 @@ def build_notion_properties(business_card_data, lead_date_str, context):
             ]
         }
     else:
-        properties["メモ"] = {"rich_text": []}
+        properties["ヒアリングメモ"] = {"rich_text": []}
     
-    
-    # ▼ メールタイトル: Rich text 型
-    print(f"Received message type: {type(message)}")
-    
-    mail_title = message.get("タイトル", "")
-
-    if mail_title:
-        properties["メールタイトル"] = {
+    # ▼ ボイレコ貸し出し: rich_text 型
+    voice_record = context.get("voice_record_loan", "").strip()
+    if voice_record:
+        properties["ボイレコ貸し出し"] = {
             "rich_text": [
                 {
                     "type": "text",
-                    "text": {"content": mail_title}
+                    "text": {"content": voice_record}
                 }
             ]
         }
     else:
-        properties["メールタイトル"] = {"rich_text": []}
-    
-    
-    # ▼ メールタイトル: Rich text 型
-    mail_body = message.get("本文", "")
-
-    if mail_body:
-        properties["メール本文"] = {
-            "rich_text": [
-                {
-                    "type": "text",
-                    "text": {"content": mail_body}
-                }
-            ]
-        }
-    else:
-        properties["メール本文"] = {"rich_text": []}
-    
-    """
+        properties["ボイレコ貸し出し"] = {"rich_text": []}
     
         
     # ▼ 製品: multi select 型
@@ -328,18 +214,9 @@ def build_notion_properties(business_card_data, lead_date_str, context):
     properties["タグ"] = {"select": {"name": "NexTech"}}
     properties["ステータス"] = {"multi_select": [{"name": "メール予定"}]}
     properties["ペルソナ"] = {"select": {"name": get_perusona(context)}}
-    properties["商談ステータス"] = {"status": None}
-    properties["次アクション"] = {"rich_text": []}
-    properties["BANT"] = {"rich_text": []}
     properties["契約開始日"] = {"date": None}
-    properties["契約プラン"] = {"select": None}
     properties["料金形態"] = {"select": None}
     properties["割引"] = {"number": None}
-    properties["契約ステータス"] = {"select": None}
-    properties["自動更新"] = {"checkbox": False}
-    properties["チームID"] = {"rich_text": []}
-    properties["クレーム"] = {"rich_text": []}
-    properties["解約理由"] = {"rich_text": []}
 
     # ▼ 郵便番号: rich_text 型
     zipcode = business_card_data.get("郵便番号", "").strip()
