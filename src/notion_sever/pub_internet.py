@@ -2,7 +2,9 @@ import uuid, os, paramiko
 import configparser
 
 config = configparser.ConfigParser()
-config.read("../config.ini", encoding="utf-8")
+# 現在のスクリプトの場所を基準に設定ファイルのパスを決定
+config_path = os.path.join(os.path.dirname(__file__), "..", "..", "config.ini")
+config.read(config_path, encoding="utf-8")
 
 KEY_PATH = config["HOST"]["SCP_KEY_PATH"]
 UPLORD_PATH = config["HOST"]["UPLOAD_PATH"]
