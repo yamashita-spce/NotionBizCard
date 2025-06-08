@@ -34,8 +34,7 @@ def main(business_card_input, hearing_seed_inputs, lead_date_str, context):
         message, tokens = gm.generate_email_with_gemini(
             context,
             analysis_result,
-            exhibition_name="業務改善EXPO"
-        )
+            exhibition_name="AI-人工知能 EXPO 東京")
         
         # 3) notion に送るためのプロパティを組み立てる
         properties = cnp.build_notion_properties(analysis_result, lead_date_str, context, message)
