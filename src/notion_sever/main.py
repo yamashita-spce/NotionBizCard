@@ -1,21 +1,19 @@
 import os
 import sys
 from urllib.parse import urlparse
-import configparser
+from dotenv import load_dotenv
 
 import ocr
-import pub_internet
+import s3_upload
 import creteNotionPerties as cnp
 # import create_gmail as gm
 
-# 環境変数の設定
-config = configparser.ConfigParser()
-# 現在のスクリプトの場所を基準に設定ファイルのパスを決定
-config_path = os.path.join(os.path.dirname(__file__), "..", "..", "config.ini")
-config.read(config_path, encoding="utf-8")
+# 環境変数を読み込み
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", "aws", ".env"))
 
-#public file sever
-UPLOAD_URL = config["HOST"]["UPLOAD_URL"]
+# S3設定
+BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
+AWS_REGION = os.getenv("AWS_REGION", "ap-northeast-1")
 
 def remove_files(business_card_input, hearing_seed_inputs):
     if business_card_input:
@@ -42,19 +40,24 @@ def main(business_card_input, hearing_seed_inputs, lead_date_str, context):
             }
             print("[手入力モード] OCRをスキップして手入力データを使用します")
             
-            # ヒアリングシートがある場合のみアップロード
+            # ヒアリングシートがある場合のみS3アップロード
             if hearing_seed_inputs:
-                unique_id, remote_base = pub_internet.scp_upload_via_key(None, hearing_seed_inputs)
+                unique_id, base_url = s3_upload.scp_upload_via_key(None, hearing_seed_inputs)
             else:
                 unique_id = None
         else:
-            # 名刺画像モード: 従来の処理
-            # 0) リモートサーバに画像をアップロード
-            unique_id, remote_base = pub_internet.scp_upload_via_key(business_card_input, hearing_seed_inputs)
+            # 名刺画像モード: S3アップロード処理
+            # 0) S3に画像をアップロード
+            unique_id, base_url = s3_upload.scp_upload_via_key(business_card_input, hearing_seed_inputs)
 
-            # 1) openAIでテキスト抽出
-            url = UPLOAD_URL + unique_id + "/card/" + os.path.basename(business_card_input)
-            analysis_result = ocr.ocr_image_from_url(url)
+            # 1) S3のカード画像URLを取得してOCR処理
+            s3_uploader = s3_upload.NotionBizCardS3Uploader()
+            card_url = s3_uploader.get_card_image_url(unique_id, os.path.basename(business_card_input))
+            if card_url:
+                analysis_result = ocr.ocr_image_from_url(card_url)
+            else:
+                print("[Error] S3からカード画像URLを取得できませんでした")
+                return 1
 
         # 2) メール文面の組み立て
 
@@ -81,8 +84,10 @@ def main(business_card_input, hearing_seed_inputs, lead_date_str, context):
             # 従来の処理（名刺とヒアリングシート両方）
             rt = cnp.append_image_blocks(page_id, unique_id, business_card_input, hearing_seed_inputs)
 
-        # 6) リモートサーバのフォルダを削除
-        # pub_internet.delete_remote_folder(unique_id)
+        # 6) S3の処理ディレクトリを削除（オプション）
+        # 処理完了後にS3のファイルを保持したい場合はコメントアウト
+        # if unique_id:
+        #     s3_upload.delete_remote_folder(unique_id)
         
         # 7) upload ファイルの削除
         print("upload files remove")

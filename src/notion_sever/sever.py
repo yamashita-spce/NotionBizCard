@@ -67,18 +67,47 @@ if not os.path.exists(HANDOVER_DIR): os.makedirs(HANDOVER_DIR)
 
 # --- ヘルパー関数 ---
 def convert_to_jpeg(src_path, dest_path):
-    """画像をJPEG形式に変換・リサイズして保存する"""
+    """画像をGPT-4o Vision最適サイズに変換・リサイズして保存する"""
     temp_path = dest_path + ".tmp"
     try:
         with Image.open(src_path) as img:
             img = img.convert("RGB")
-            try:
-                img.thumbnail((512, 512), Image.Resampling.LANCZOS)
-            except AttributeError:
-                img.thumbnail((512, 512), Image.LANCZOS)
-            img.save(temp_path, format="JPEG", quality=85)
+            
+            # GPT-4o Vision最適サイズに調整
+            # 長辺を2048px以下、短辺を768px以下に制限
+            width, height = img.size
+            
+            # 長辺が2048pxを超える場合は縮小
+            if max(width, height) > 2048:
+                if width > height:
+                    new_width = 2048
+                    new_height = int(height * (2048 / width))
+                else:
+                    new_height = 2048
+                    new_width = int(width * (2048 / height))
+                width, height = new_width, new_height
+            
+            # 短辺が768pxを超える場合はさらに縮小
+            if min(width, height) > 768:
+                if width < height:
+                    new_width = 768
+                    new_height = int(height * (768 / width))
+                else:
+                    new_height = 768
+                    new_width = int(width * (768 / height))
+                width, height = new_width, new_height
+            
+            # リサイズを実行
+            if (width, height) != img.size:
+                try:
+                    img = img.resize((width, height), Image.Resampling.LANCZOS)
+                except AttributeError:
+                    img = img.resize((width, height), Image.LANCZOS)
+            
+            # JPEG品質を向上（OCR精度向上のため）
+            img.save(temp_path, format="JPEG", quality=95, optimize=True)
         os.replace(temp_path, dest_path)
-        print(f"Converted image to {dest_path}")
+        print(f"Converted image to {dest_path} (size: {width}x{height})")
     except Exception as e:
         print(f"Error converting {src_path} to JPEG: {e}")
         if os.path.exists(temp_path):

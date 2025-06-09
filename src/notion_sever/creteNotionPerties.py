@@ -1,24 +1,22 @@
 import datetime
 import requests
-import configparser
 import os
+from dotenv import load_dotenv
 
-
-config = configparser.ConfigParser()
-# 現在のスクリプトの場所を基準に設定ファイルのパスを決定
-config_path = os.path.join(os.path.dirname(__file__), "..", "..", "config.ini")
-config.read(config_path, encoding="utf-8")
+# 環境変数を読み込み
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", "aws", ".env"))
 
 # Notion 
-NOTION_API_TOKEN = config["HOST"]["NOTION_API_TOKEN"]
-DATABASE_ID = config["HOST"]["DATABASE_ID"]  # NotionデータベースIDの部分のみ
-NOTION_VERSION = config["HOST"]["NOTION_VERSION"]
+NOTION_API_TOKEN = os.getenv("NOTION_API_TOKEN")
+DATABASE_ID = os.getenv("NOTION_DATABASE_ID")  # NotionデータベースIDの部分のみ
+NOTION_VERSION = os.getenv("NOTION_VERSION", "2022-06-28")
 
 # Notion タグ設定
-DEFAULT_TAG = config["HOST"]["DEFAULT_TAG"].replace('"', '')
+DEFAULT_TAG = os.getenv("DEFAULT_TAG", "未設定").replace('"', '')
 
-# public file sever
-UPLOAD_URL = config["HOST"]["UPLOAD_URL"]
+# S3 設定
+BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
+AWS_REGION = os.getenv("AWS_REGION", "ap-northeast-1")
 
 def get_perusona(context):
     """
@@ -102,7 +100,7 @@ def build_notion_properties(business_card_data, lead_date_str, context):
     else:
         properties["担当者氏名"] = {"rich_text": []}
 
-    # ▼ 部署名: rich_text 型
+    # ▼ 部署名: rich_text 型（OCR抽出結果をそのまま使用）
     department = business_card_data.get("部署", "").strip()
     if department:
         properties["部署名"] = {
@@ -116,14 +114,14 @@ def build_notion_properties(business_card_data, lead_date_str, context):
     else:
         properties["部署名"] = {"rich_text": []}
 
-    # ▼ 役職名: rich_text 型
-    title_inferred = business_card_data.get("役職", "").strip()
-    if title_inferred:
+    # ▼ 役職名: rich_text 型（OCR抽出結果をそのまま使用）
+    title_extracted = business_card_data.get("役職", "").strip()
+    if title_extracted:
         properties["役職名"] = {
             "rich_text": [
                 {
                     "type": "text",
-                    "text": {"content": title_inferred}
+                    "text": {"content": title_extracted}
                 }
             ]
         }
@@ -308,9 +306,10 @@ def create_notion_page(properties):
 
 def append_image_blocks(page_id, unique_id, card_image, hearing_images):
     """
-    作成済みのページ（page_id）の本文に、外部画像URLを用いた画像ブロックを追加する関数です。
-    image_urls は追加する画像のURLのリスト。
+    作成済みのページ（page_id）の本文に、S3の画像URLを用いた画像ブロックを追加する関数です。
     """
+    from s3_upload import NotionBizCardS3Uploader
+    
     url = f"https://api.notion.com/v1/blocks/{page_id}/children"
     headers = {
         "Authorization": f"Bearer {NOTION_API_TOKEN}",
@@ -319,21 +318,25 @@ def append_image_blocks(page_id, unique_id, card_image, hearing_images):
     }
     children = []
     
-    # 名刺画像の追加
-    card_url = UPLOAD_URL + unique_id + "/card/" + os.path.basename(card_image)
-    children.append({
-        "object": "block",
-        "type": "image",
-        "image": {
-            "type": "external",
-            "external": {"url": card_url}
-        }
-    })
+    # S3アップローダーを初期化
+    s3_uploader = NotionBizCardS3Uploader()
+    
+    # 名刺画像の追加（手入力モードでない場合）
+    if card_image:
+        card_url = s3_uploader.get_card_image_url(unique_id, os.path.basename(card_image))
+        if card_url:
+            children.append({
+                "object": "block",
+                "type": "image",
+                "image": {
+                    "type": "external",
+                    "external": {"url": card_url}
+                }
+            })
     
     # ヒアリングシート画像の追加
-    for img_name in hearing_images:
-
-        img_url = UPLOAD_URL + unique_id + "/hearing/" + os.path.basename(img_name)
+    hearing_urls = s3_uploader.get_hearing_image_urls(unique_id)
+    for img_url in hearing_urls:
         children.append({
             "object": "block",
             "type": "image",
@@ -342,6 +345,10 @@ def append_image_blocks(page_id, unique_id, card_image, hearing_images):
                 "external": {"url": img_url}
             }
         })
+
+    if not children:
+        print("[*]追加する画像がありません。")
+        return 0
 
     data = {"children": children}
     response = requests.patch(url, headers=headers, json=data)
@@ -355,8 +362,10 @@ def append_image_blocks(page_id, unique_id, card_image, hearing_images):
 
 def append_hearing_images_only(page_id, unique_id, hearing_images):
     """
-    ヒアリングシート画像のみをページに追加する関数（手入力モード用）
+    ヒアリングシート画像のみをS3からページに追加する関数（手入力モード用）
     """
+    from s3_upload import NotionBizCardS3Uploader
+    
     url = f"https://api.notion.com/v1/blocks/{page_id}/children"
     headers = {
         "Authorization": f"Bearer {NOTION_API_TOKEN}",
@@ -365,9 +374,12 @@ def append_hearing_images_only(page_id, unique_id, hearing_images):
     }
     children = []
     
+    # S3アップローダーを初期化
+    s3_uploader = NotionBizCardS3Uploader()
+    
     # ヒアリングシート画像の追加
-    for img_name in hearing_images:
-        img_url = UPLOAD_URL + unique_id + "/hearing/" + os.path.basename(img_name)
+    hearing_urls = s3_uploader.get_hearing_image_urls(unique_id)
+    for img_url in hearing_urls:
         children.append({
             "object": "block",
             "type": "image",

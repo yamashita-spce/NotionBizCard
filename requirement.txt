@@ -18,3 +18,5 @@ paramiko
 openai
 aiohttp
 asyncio
+boto3
+python-dotenv
