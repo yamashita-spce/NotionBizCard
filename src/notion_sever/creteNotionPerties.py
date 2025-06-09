@@ -48,6 +48,13 @@ def get_perusona(context):
     
 # notion データベースプロパティの組み立て
 def build_notion_properties(business_card_data, lead_date_str, context):
+    # OCR結果がNoneまたは空の場合の処理
+    if business_card_data is None:
+        print("[警告] OCR結果がNoneです。空のデータで処理を続行します。")
+        business_card_data = {}
+    elif not isinstance(business_card_data, dict):
+        print(f"[警告] OCR結果が辞書型ではありません: {type(business_card_data)}")
+        business_card_data = {}
     # リード獲得日の変換（例："2025/3/12" → "2025-03-12T00:00:00"）
     lead_date = None
     if lead_date_str:
@@ -188,7 +195,7 @@ def build_notion_properties(business_card_data, lead_date_str, context):
         properties["ヒアリングメモ"] = {"rich_text": []}
     
     # ▼ ボイレコ貸し出し: rich_text 型
-    voice_record = context.get("voice_record_loan", "").strip()
+    voice_record = context.get("voice_recorder_loan_value", "").strip()
     if voice_record:
         properties["ボイレコ貸し出し"] = {
             "rich_text": [
@@ -340,5 +347,43 @@ def append_image_blocks(page_id, unique_id, card_image, hearing_images):
         return 0
     else:
         print(f"画像ブロック追加エラー: {response.text}")
+        return 1
+
+
+def append_hearing_images_only(page_id, unique_id, hearing_images):
+    """
+    ヒアリングシート画像のみをページに追加する関数（手入力モード用）
+    """
+    url = f"https://api.notion.com/v1/blocks/{page_id}/children"
+    headers = {
+        "Authorization": f"Bearer {NOTION_API_TOKEN}",
+        "Content-Type": "application/json",
+        "Notion-Version": NOTION_VERSION,
+    }
+    children = []
+    
+    # ヒアリングシート画像の追加
+    for img_name in hearing_images:
+        img_url = UPLOAD_URL + unique_id + "/hearing/" + os.path.basename(img_name)
+        children.append({
+            "object": "block",
+            "type": "image",
+            "image": {
+                "type": "external",
+                "external": {"url": img_url}
+            }
+        })
+
+    if not children:
+        print("[*]追加する画像がありません。")
+        return 0
+
+    data = {"children": children}
+    response = requests.patch(url, headers=headers, json=data)
+    if response.status_code == 200:
+        print("[*]ヒアリングシート画像ブロックの追加に成功しました。")
+        return 0
+    else:
+        print(f"ヒアリングシート画像ブロック追加エラー: {response.text}")
         return 1
 
