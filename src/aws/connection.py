@@ -88,7 +88,7 @@ class S3ImageUploader:
             # ファイルサイズを取得
             file_size = os.path.getsize(file_path)
             
-            # S3にアップロード
+            # S3にアップロード（ACLを削除）
             with open(file_path, 'rb') as file:
                 self.s3_client.upload_fileobj(
                     file,
@@ -96,7 +96,6 @@ class S3ImageUploader:
                     s3_key,
                     ExtraArgs={
                         'ContentType': content_type,
-                        'ACL': 'public-read',
                         'Metadata': {
                             'process-uuid': process_uuid,
                             'original-filename': file_name,
