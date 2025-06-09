@@ -1,6 +1,8 @@
 # remove config & cache file
 *.config
 *.ini
+*.env
+*.cache
 *.pyc
 __pycache__
 uploads/

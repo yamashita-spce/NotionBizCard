@@ -14,6 +14,9 @@ NOTION_API_TOKEN = config["HOST"]["NOTION_API_TOKEN"]
 DATABASE_ID = config["HOST"]["DATABASE_ID"]  # NotionデータベースIDの部分のみ
 NOTION_VERSION = config["HOST"]["NOTION_VERSION"]
 
+# Notion タグ設定
+DEFAULT_TAG = config["HOST"]["DEFAULT_TAG"].replace('"', '')
+
 # public file sever
 UPLOAD_URL = config["HOST"]["UPLOAD_URL"]
 
@@ -218,7 +221,7 @@ def build_notion_properties(business_card_data, lead_date_str, context):
         
     
     # ▼ 以下、空欄の項目は Notion の型に合わせたデフォルト値
-    properties["タグ"] = {"select": {"name": "NexTech"}}
+    properties["タグ"] = {"select": {"name": DEFAULT_TAG}}
     properties["ステータス"] = {"multi_select": [{"name": "メール予定"}]}
     properties["ペルソナ"] = {"select": {"name": get_perusona(context)}}
     properties["契約開始日"] = {"date": None}
