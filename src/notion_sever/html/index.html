@@ -19,14 +19,235 @@
     }
   </style>
 </head>
-<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
-  <div class="w-full max-w-md bg-white rounded-xl shadow-lg p-6">
+<body class="bg-gray-50 min-h-screen">
+  <!-- PC用レイアウト -->
+  <div class="hidden lg:block">
+    <div class="container mx-auto px-8 py-12">
+      <div class="max-w-6xl mx-auto bg-white rounded-xl shadow-lg">
+        <div class="p-8">
+          <h1 class="text-3xl font-bold text-center mb-8 text-gray-800">リードデータベース管理システム</h1>
+          
+
+          {% if message %}
+            <div class="mb-6 p-4 text-center rounded-lg {{ 'bg-green-50 text-green-700 border border-green-200' if success == '1' else 'bg-red-50 text-red-700 border border-red-200' }}">
+              {{ message|safe }}
+            </div>
+          {% endif %}
+
+          <form method="post" enctype="multipart/form-data" id="pc-upload-form" class="space-y-8">
+            
+            <!-- 第1セクション: 基本情報 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              
+              <!-- 左カラム: 担当者・名刺情報 -->
+              <div class="space-y-6">
+                <h2 class="text-xl font-semibold text-gray-800 border-b pb-2">基本情報</h2>
+                
+                <!-- 担当者 -->
+                <div>
+                  <label for="pc-tantosha-input" class="block text-sm font-medium text-gray-700 mb-2">担当者 <span class="text-red-500">*</span></label>
+                  <select name="tantosha" id="pc-tantosha-input" class="w-full px-4 py-3 rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+                    <option value="" disabled {% if not tantosha_value %}selected{% endif %}>担当者を選択してください</option>
+                    {% for assignee in assignees_list %}
+                      <option value="{{ assignee }}" {% if assignee == tantosha_value %}selected{% endif %}>{{ assignee }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+
+                <!-- 名刺情報 -->
+                <div>
+                  <label class="block text-lg font-medium text-gray-700 mb-3">名刺情報</label>
+                  
+                  <!-- 入力方法選択 -->
+                  <div class="mb-4">
+                    <div class="flex space-x-6">
+                      <label class="inline-flex items-center">
+                        <input type="radio" name="input_method" value="image" id="pc-input-method-image" class="form-radio h-5 w-5 text-indigo-600" checked>
+                        <span class="ml-3 text-base">名刺画像</span>
+                      </label>
+                      <label class="inline-flex items-center">
+                        <input type="radio" name="input_method" value="manual" id="pc-input-method-manual" class="form-radio h-5 w-5 text-indigo-600">
+                        <span class="ml-3 text-base">手入力</span>
+                      </label>
+                    </div>
+                  </div>
+                  
+                  <!-- 名刺画像セクション -->
+                  <div id="pc-image-input-section">
+                    <div class="flex space-x-3 mb-4">
+                      <label for="pc-business-card-input" class="cursor-pointer inline-flex items-center px-6 py-3 bg-indigo-100 rounded-lg hover:bg-indigo-200 transition text-base">
+                        📁 ファイルを選択
+                      </label>
+                      <button type="button" id="pc-business-card-camera" class="inline-flex items-center px-6 py-3 bg-indigo-100 rounded-lg hover:bg-indigo-200 transition text-base">
+                        📷 カメラ
+                      </button>
+                    </div>
+                    <input type="file" name="business_card" id="pc-business-card-input" accept="image/*" class="hidden">
+                    <div id="pc-business-card-preview" class="mt-3 grid grid-cols-1 gap-3"></div>
+                  </div>
+                  
+                  <!-- 手入力セクション -->
+                  <div id="pc-manual-input-section" class="hidden space-y-4">
+                    <div>
+                      <label for="pc-manual-company" class="block text-sm font-medium text-gray-700 mb-2">会社名 <span class="text-red-500">*</span></label>
+                      <input type="text" name="manual_company" id="pc-manual-company" class="w-full px-4 py-3 rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="株式会社○○">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                      <div>
+                        <label for="pc-manual-department" class="block text-sm font-medium text-gray-700 mb-2">部署名</label>
+                        <input type="text" name="manual_department" id="pc-manual-department" class="w-full px-4 py-3 rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="営業部">
+                      </div>
+                      <div>
+                        <label for="pc-manual-position" class="block text-sm font-medium text-gray-700 mb-2">役職名</label>
+                        <input type="text" name="manual_position" id="pc-manual-position" class="w-full px-4 py-3 rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="課長">
+                      </div>
+                    </div>
+                    <div>
+                      <label for="pc-manual-name" class="block text-sm font-medium text-gray-700 mb-2">担当者氏名 <span class="text-red-500">*</span></label>
+                      <input type="text" name="manual_name" id="pc-manual-name" class="w-full px-4 py-3 rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="田中太郎">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                      <div>
+                        <label for="pc-manual-email" class="block text-sm font-medium text-gray-700 mb-2">メールアドレス</label>
+                        <input type="email" name="manual_email" id="pc-manual-email" class="w-full px-4 py-3 rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="tanaka@example.com">
+                      </div>
+                      <div>
+                        <label for="pc-manual-phone" class="block text-sm font-medium text-gray-700 mb-2">電話番号</label>
+                        <input type="tel" name="manual_phone" id="pc-manual-phone" class="w-full px-4 py-3 rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="03-1234-5678">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- ヒアリングシート -->
+                <div>
+                  <label class="block text-lg font-medium text-gray-700 mb-3">ヒアリングシート画像（複数可）</label>
+                  <div class="flex space-x-3 mb-4">
+                    <label for="pc-hearing-seed-input" class="cursor-pointer inline-flex items-center px-6 py-3 bg-indigo-100 rounded-lg hover:bg-indigo-200 transition text-base">
+                      📁 ファイルを選択
+                    </label>
+                    <button type="button" id="pc-hearing-sheet-camera" class="inline-flex items-center px-6 py-3 bg-indigo-100 rounded-lg hover:bg-indigo-200 transition text-base">
+                      📷 カメラ
+                    </button>
+                  </div>
+                  <input type="file" name="hearing_seed" id="pc-hearing-seed-input" multiple accept="image/*" class="hidden">
+                  <div id="pc-hearing-seed-preview" class="mt-3 grid grid-cols-4 gap-3"></div>
+                </div>
+              </div>
+
+              <!-- 右カラム: プラン・ペルソナ -->
+              <div class="space-y-6">
+                <h2 class="text-xl font-semibold text-gray-800 border-b pb-2">営業情報</h2>
+                
+                <!-- 提案プラン -->
+                <div>
+                  <label for="pc-proposal-plan-input" class="block text-sm font-medium text-gray-700 mb-2">提案（興味がありそうな）プラン <span class="text-red-500">*</span></label>
+                  <select name="proposal_plan" id="pc-proposal-plan-input" class="w-full px-4 py-3 rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+                    <option value="" disabled {% if not proposal_plan_value %}selected{% endif %}>プランを選択してください</option>
+                    {% for plan in proposal_plan_list %}
+                      <option value="{{ plan }}" {% if plan == proposal_plan_value %}selected{% endif %}>{{ plan }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+
+                <!-- ペルソナ -->
+                <div>
+                  <h3 class="text-lg font-semibold text-gray-800 mb-4">ペルソナ</h3>
+                  <div class="grid grid-cols-3 gap-4 mb-6">
+                    <div>
+                      <label for="pc-needs-input" class="block text-sm font-medium text-gray-700 mb-2">ニーズ <span class="text-red-500">*</span></label>
+                      <select name="needs" id="pc-needs-input" class="w-full px-4 py-3 rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+                        <option value="" disabled {% if not needs_value %}selected{% endif %}>選択</option>
+                        {% for option_value, option_text in persona_options.needs %}
+                          <option value="{{ option_value }}" {% if option_value == needs_value %}selected{% endif %}>{{ option_text }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div>
+                      <label for="pc-authority-input" class="block text-sm font-medium text-gray-700 mb-2">決裁権 <span class="text-red-500">*</span></label>
+                      <select name="authority" id="pc-authority-input" class="w-full px-4 py-3 rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+                        <option value="" disabled {% if not authority_value %}selected{% endif %}>選択</option>
+                        {% for option_value, option_text in persona_options.authority %}
+                          <option value="{{ option_value }}" {% if option_value == authority_value %}selected{% endif %}>{{ option_text }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div>
+                      <label for="pc-timing-input" class="block text-sm font-medium text-gray-700 mb-2">導入時期 <span class="text-red-500">*</span></label>
+                      <select name="timing" id="pc-timing-input" class="w-full px-4 py-3 rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+                        <option value="" disabled {% if not timing_value %}selected{% endif %}>選択</option>
+                        {% for option_value, option_text in persona_options.timing %}
+                          <option value="{{ option_value }}" {% if option_value == timing_value %}selected{% endif %}>{{ option_text }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- リード獲得日とボイレコ -->
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label for="pc-lead-date-input" class="block text-sm font-medium text-gray-700 mb-2">リード獲得日 (YYYY/M/D形式)</label>
+                    <input type="text" name="lead_date" id="pc-lead-date-input" placeholder="デフォルトは当日になります" value="{{ lead_date_value }}" class="w-full px-4 py-3 rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                  </div>
+                  <div>
+                    <label for="pc-voice-recorder-loan-input" class="block text-sm font-medium text-gray-700 mb-2">ボイスレコーダー貸し出し</label>
+                    <input type="text" name="voice_recorder_loan" id="pc-voice-recorder-loan-input" class="w-full px-4 py-3 rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="管理番号を入力（例：VR001）" value="{{ voice_recorder_loan_value }}">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 第2セクション: ヒアリング詳細 -->
+            <div class="border-t pt-8">
+              <h2 class="text-xl font-semibold text-gray-800 mb-6">ヒアリング詳細</h2>
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <label for="pc-current-situation-input" class="block text-sm font-medium text-gray-700 mb-2">現状</label>
+                  <textarea name="current_situation" id="pc-current-situation-input" rows="4" class="w-full px-4 py-3 rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="お客様の現在の状況を記述してください">{{ current_situation_value }}</textarea>
+                </div>
+                <div>
+                  <label for="pc-problem-input" class="block text-sm font-medium text-gray-700 mb-2">問題</label>
+                  <textarea name="problem" id="pc-problem-input" rows="4" class="w-full px-4 py-3 rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="お客様が抱えている問題を記述してください">{{ problem_value }}</textarea>
+                </div>
+                <div>
+                  <label for="pc-most-important-need-input" class="block text-sm font-medium text-gray-700 mb-2">最重要ニーズ</label>
+                  <textarea name="most_important_need" id="pc-most-important-need-input" rows="4" class="w-full px-4 py-3 rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="お客様が最も解決したいと考えているニーズを記述してください">{{ most_important_need_value }}</textarea>
+                </div>
+                <div>
+                  <label for="pc-proposal-content-input" class="block text-sm font-medium text-gray-700 mb-2">提案内容</label>
+                  <textarea name="proposal_content" id="pc-proposal-content-input" rows="4" class="w-full px-4 py-3 rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="具体的な提案内容を記述してください">{{ proposal_content_value }}</textarea>
+                </div>
+              </div>
+              <div class="mt-4">
+                <label for="pc-consideration-reason-input" class="block text-sm font-medium text-gray-700 mb-2">検討理由</label>
+                <textarea name="consideration_reason" id="pc-consideration-reason-input" rows="3" class="w-full px-4 py-3 rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="お客様が提案を検討する理由や背景を記述してください">{{ consideration_reason_value }}</textarea>
+              </div>
+            </div>
+
+            <!-- 送信ボタン -->
+            <div class="flex items-center justify-center pt-6 border-t">
+              <button id="pc-submit-btn" type="submit" class="px-12 py-4 bg-indigo-600 text-white font-bold rounded-lg shadow hover:bg-indigo-700 transition flex items-center text-lg">
+                <span id="pc-btn-text">処理開始</span>
+                <svg id="pc-btn-spinner" class="hidden animate-spin ml-3 h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                </svg>
+              </button>
+            </div>
+
+
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- スマホ用レイアウト -->
+  <div class="lg:hidden flex items-center justify-center p-4 min-h-screen">
+    <div class="w-full max-w-md bg-white rounded-xl shadow-lg p-6">
     <h1 class="text-2xl font-semibold text-center mb-6">リードデータベース</h1>
 
-    <div id="handover-source-info" class="hidden mb-4 p-3 bg-yellow-100 border border-yellow-300 rounded-md text-sm">
-      <p><strong>引き継ぎ元担当者:</strong> <span id="source-tantosha-name"></span></p>
-      <p>（内容は引き継がれましたが、担当者はご自身の名前を選択してください）</p>
-    </div>
 
     {% if message %}
       <p class="mt-4 text-center {{ 'text-green-600' if success == '1' else 'text-red-600' }}">
@@ -34,26 +255,15 @@
       </p>
     {% endif %}
 
-    <form method="post" enctype="multipart/form-data" id="upload-form" class="space-y-6">
+    <form method="post" enctype="multipart/form-data" id="mobile-upload-form" class="space-y-6">
       <div>
         <label for="tantosha-input" class="block text-sm font-medium text-gray-700 mb-1">担当者 <span class="text-red-500">*</span></label>
-        <div class="flex items-center space-x-2">
-          <select name="tantosha" id="tantosha-input" class="flex-grow mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required>
-            <option value="" disabled {% if not tantosha_value %}selected{% endif %}>担当者を選択してください</option>
-            {% for assignee in assignees_list %}
-              <option value="{{ assignee }}" {% if assignee == tantosha_value %}selected{% endif %}>{{ assignee }}</option>
-            {% endfor %}
-          </select>
-          <button type="button" id="load-handover-list-btn" class="mt-1 px-5 py-2 bg-green-100 rounded-lg hover:bg-green-200 transition text-sm whitespace-nowrap">
-            引き継ぐ
-          </button>
-        </div>
-        <div id="handover-list-container" class="hidden mt-3 border rounded-md p-3 bg-gray-50">
-          <h4 class="text-sm font-medium mb-2">引き継ぎデータを選択してください:</h4>
-          <div id="handover-list-table-wrapper" class="max-h-40 overflow-y-auto">
-             </div>
-          <button type="button" id="close-handover-list-btn" class="mt-2 text-xs text-gray-500 hover:underline">閉じる</button>
-        </div>
+        <select name="tantosha" id="tantosha-input" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required>
+          <option value="" disabled {% if not tantosha_value %}selected{% endif %}>担当者を選択してください</option>
+          {% for assignee in assignees_list %}
+            <option value="{{ assignee }}" {% if assignee == tantosha_value %}selected{% endif %}>{{ assignee }}</option>
+          {% endfor %}
+        </select>
       </div>
 
       <div>
@@ -221,24 +431,17 @@
         <p class="mt-1 text-xs text-gray-500">ボイスレコーダーを貸し出した場合の管理番号を入力してください</p>
       </div>
 
-      <div class="flex items-center space-x-3 pt-4">
-          <button type="button" id="save-handover-btn" class="py-2 px-4 bg-yellow-500 text-white font-semibold rounded-lg shadow hover:bg-yellow-600 transition flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-              </svg>
-              引き継ぎ
-          </button>
-          <button id="submit-btn" type="submit" class="flex-grow py-2 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow hover:bg-indigo-700 transition flex items-center justify-center">
+      <div class="flex items-center justify-center pt-4">
+          <button id="submit-btn" type="submit" class="w-full py-3 px-6 bg-indigo-600 text-white font-semibold rounded-lg shadow hover:bg-indigo-700 transition flex items-center justify-center">
               <span id="btn-text">アップロード</span>
               <svg id="btn-spinner" class="hidden animate-spin ml-2 h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
           </button>
       </div>
 
-    <input type="hidden" name="delete_handover_id" id="delete-handover-id-input" value="">
-    <input type="hidden" name="source_tantosha" id="source-tantosha-input" value="">
 
     </form>
 
+    </div>
   </div>
 
   <div id="camera-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
@@ -256,8 +459,9 @@
   </div>
 
   <script>
-    // 入力方法の切り替え
+    // 入力方法の切り替え（PC・モバイル共通）
     document.addEventListener('DOMContentLoaded', function() {
+      // モバイル用の要素
       const imageRadio = document.getElementById('input-method-image');
       const manualRadio = document.getElementById('input-method-manual');
       const imageSection = document.getElementById('image-input-section');
@@ -266,31 +470,66 @@
       const manualCompany = document.getElementById('manual-company');
       const manualName = document.getElementById('manual-name');
       
+      // PC用の要素
+      const pcImageRadio = document.getElementById('pc-input-method-image');
+      const pcManualRadio = document.getElementById('pc-input-method-manual');
+      const pcImageSection = document.getElementById('pc-image-input-section');
+      const pcManualSection = document.getElementById('pc-manual-input-section');
+      const pcBusinessCardInput = document.getElementById('pc-business-card-input');
+      const pcManualCompany = document.getElementById('pc-manual-company');
+      const pcManualName = document.getElementById('pc-manual-name');
+      
       function toggleInputMethod() {
-        if (manualRadio.checked) {
-          imageSection.classList.add('hidden');
-          manualSection.classList.remove('hidden');
-          // 名刺画像の必須を解除
-          businessCardInput.removeAttribute('required');
-          // 手入力フィールドを必須に
-          manualCompany.setAttribute('required', 'required');
-          manualName.setAttribute('required', 'required');
-        } else {
-          imageSection.classList.remove('hidden');
-          manualSection.classList.add('hidden');
-          // 名刺画像を必須に
-          businessCardInput.setAttribute('required', 'required');
-          // 手入力フィールドの必須を解除
-          manualCompany.removeAttribute('required');
-          manualName.removeAttribute('required');
+        // モバイル用の処理
+        if (imageRadio && manualRadio) {
+          if (manualRadio.checked) {
+            imageSection.classList.add('hidden');
+            manualSection.classList.remove('hidden');
+            businessCardInput.removeAttribute('required');
+            manualCompany.setAttribute('required', 'required');
+            manualName.setAttribute('required', 'required');
+          } else {
+            imageSection.classList.remove('hidden');
+            manualSection.classList.add('hidden');
+            businessCardInput.setAttribute('required', 'required');
+            manualCompany.removeAttribute('required');
+            manualName.removeAttribute('required');
+          }
         }
       }
       
-      imageRadio.addEventListener('change', toggleInputMethod);
-      manualRadio.addEventListener('change', toggleInputMethod);
+      function togglePcInputMethod() {
+        // PC用の処理
+        if (pcImageRadio && pcManualRadio) {
+          if (pcManualRadio.checked) {
+            pcImageSection.classList.add('hidden');
+            pcManualSection.classList.remove('hidden');
+            pcBusinessCardInput.removeAttribute('required');
+            pcManualCompany.setAttribute('required', 'required');
+            pcManualName.setAttribute('required', 'required');
+          } else {
+            pcImageSection.classList.remove('hidden');
+            pcManualSection.classList.add('hidden');
+            pcBusinessCardInput.setAttribute('required', 'required');
+            pcManualCompany.removeAttribute('required');
+            pcManualName.removeAttribute('required');
+          }
+        }
+      }
       
-      // 初期状態を設定
-      toggleInputMethod();
+      // モバイル用イベントリスナー
+      if (imageRadio && manualRadio) {
+        imageRadio.addEventListener('change', toggleInputMethod);
+        manualRadio.addEventListener('change', toggleInputMethod);
+        toggleInputMethod(); // 初期状態を設定
+      }
+      
+      // PC用イベントリスナー
+      if (pcImageRadio && pcManualRadio) {
+        pcImageRadio.addEventListener('change', togglePcInputMethod);
+        pcManualRadio.addEventListener('change', togglePcInputMethod);
+        togglePcInputMethod(); // 初期状態を設定
+      }
     });
     // --- ▼▼▼ 初期化・既存機能 ▼▼▼ ---
 
@@ -321,7 +560,7 @@
       }
     });
 
-    // 名刺プレビュー
+    // 名刺プレビュー（モバイル）
     document.getElementById("business-card-input").addEventListener("change", e => {
       const container = document.getElementById("business-card-preview");
       container.innerHTML = ""; // 既存のプレビューをクリア
@@ -339,12 +578,28 @@
       }
     });
 
-    // ヒアリングシートプレビュー（累積表示）
+    // 名刺プレビュー（PC）
+    document.getElementById("pc-business-card-input").addEventListener("change", e => {
+      const container = document.getElementById("pc-business-card-preview");
+      container.innerHTML = ""; // 既存のプレビューをクリア
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = ev => {
+          const img = document.createElement("img");
+          img.src = ev.target.result;
+          img.alt = file.name;
+          img.className = "w-full h-auto object-contain rounded max-h-40"; // PC用により大きく
+          container.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // ヒアリングシートプレビュー（累積表示 - モバイル）
     const hearingInput = document.getElementById("hearing-seed-input");
     const hearingPreview = document.getElementById("hearing-seed-preview");
-    // ページ読み込み時や引き継ぎ読み込み時にプレビューをどうするか検討が必要
-    // この例では単純に追加していく
-
+    
     hearingInput.addEventListener("change", e => {
       Array.from(e.target.files).forEach(file => {
         // 同じファイルがすでに追加されていないか確認（より厳密なチェックが必要な場合あり）
@@ -368,6 +623,30 @@
       // e.target.value = "";
     });
 
+    // ヒアリングシートプレビュー（累積表示 - PC）
+    const pcHearingInput = document.getElementById("pc-hearing-seed-input");
+    const pcHearingPreview = document.getElementById("pc-hearing-seed-preview");
+    
+    pcHearingInput.addEventListener("change", e => {
+      Array.from(e.target.files).forEach(file => {
+        const isAlreadyAdded = Array.from(pcHearingPreview.querySelectorAll('img')).some(img => img.alt === file.name);
+        if (!isAlreadyAdded) {
+           const reader = new FileReader();
+           reader.onload = ev => {
+             const imgContainer = document.createElement("div");
+             imgContainer.className = "relative w-20 h-20"; // PC用により大きく
+             const img = document.createElement("img");
+             img.src = ev.target.result;
+             img.alt = file.name;
+             img.className = "w-full h-full object-cover rounded";
+             imgContainer.appendChild(img);
+             pcHearingPreview.appendChild(imgContainer);
+           };
+           reader.readAsDataURL(file);
+        }
+      });
+    });
+
     // カメラ機能
     let currentCameraTarget = null; // 'business_card' または 'hearing_seed'
     let videoStream = null;
@@ -376,7 +655,7 @@
     const cameraCanvas = document.getElementById("camera-canvas");
     const cameraModalTitle = document.getElementById("camera-modal-title");
 
-    // カメラボタンのイベントリスナー
+    // カメラボタンのイベントリスナー（モバイル）
     document.getElementById("business-card-camera").addEventListener("click", () => {
       openCamera("business_card");
     });
@@ -385,11 +664,26 @@
       openCamera("hearing_seed");
     });
 
+    // カメラボタンのイベントリスナー（PC）
+    document.getElementById("pc-business-card-camera").addEventListener("click", () => {
+      openCamera("pc_business_card");
+    });
+
+    document.getElementById("pc-hearing-sheet-camera").addEventListener("click", () => {
+      openCamera("pc_hearing_seed");
+    });
+
     // カメラを開く関数
     function openCamera(target) {
       console.log("openCamera関数が呼び出されました。対象:", target);
       currentCameraTarget = target;
-      cameraModalTitle.textContent = target === "business_card" ? "名刺の写真を撮影" : "ヒアリングシートの写真を撮影";
+      
+      // タイトルを設定
+      if (target === "business_card" || target === "pc_business_card") {
+        cameraModalTitle.textContent = "名刺の写真を撮影";
+      } else {
+        cameraModalTitle.textContent = "ヒアリングシートの写真を撮影";
+      }
 
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         console.error("カメラAPI非対応");
@@ -465,8 +759,20 @@
           inputElement = document.getElementById("business-card-input");
           // 名刺は1枚なので、既存のファイルを置き換える
           inputElement.files = dataTransfer.files;
+        } else if (currentCameraTarget === "pc_business_card") {
+          inputElement = document.getElementById("pc-business-card-input");
+          // 名刺は1枚なので、既存のファイルを置き換える
+          inputElement.files = dataTransfer.files;
         } else if (currentCameraTarget === "hearing_seed") {
           inputElement = document.getElementById("hearing-seed-input");
+          // ヒアリングシートは複数可なので、既存のファイルに追加する
+          const existingFiles = inputElement.files ? Array.from(inputElement.files) : [];
+          const combinedTransfer = new DataTransfer();
+          existingFiles.forEach(f => combinedTransfer.items.add(f));
+          combinedTransfer.items.add(file); // 新しいファイルを追加
+          inputElement.files = combinedTransfer.files;
+        } else if (currentCameraTarget === "pc_hearing_seed") {
+          inputElement = document.getElementById("pc-hearing-seed-input");
           // ヒアリングシートは複数可なので、既存のファイルに追加する
           const existingFiles = inputElement.files ? Array.from(inputElement.files) : [];
           const combinedTransfer = new DataTransfer();
@@ -501,268 +807,37 @@
       console.log("カメラモーダル非表示");
     }
 
-    // 送信時にボタン無効化＆スピナー表示
-    document.getElementById("upload-form").addEventListener("submit", (e) => {
-      // ここで最終的なバリデーションを行うことも可能
-      // 例: if (!document.getElementById('tantosha-input').value) { alert('担当者を選択してください'); e.preventDefault(); return; }
+    // 送信時にボタン無効化＆スピナー表示（モバイル）
+    const mobileForm = document.getElementById("mobile-upload-form");
+    if (mobileForm) {
+      mobileForm.addEventListener("submit", (e) => {
+        const btn = document.getElementById("submit-btn");
+        const btnText = document.getElementById("btn-text");
+        const btnSpinner = document.getElementById("btn-spinner");
 
-      const btn = document.getElementById("submit-btn");
-      const btnText = document.getElementById("btn-text");
-      const btnSpinner = document.getElementById("btn-spinner");
+        btnText.classList.add("hidden");
+        btnSpinner.classList.remove("hidden");
+        btn.disabled = true;
+      });
+    }
 
-      btnText.classList.add("hidden");
-      btnSpinner.classList.remove("hidden");
-      btn.disabled = true;
-      // ボタン自体のテキストも変更するなら
-      // btn.querySelector('span').textContent = '処理中...'; // SVGがない場合
-    });
+    // 送信時にボタン無効化＆スピナー表示（PC）
+    const pcForm = document.getElementById("pc-upload-form");
+    if (pcForm) {
+      pcForm.addEventListener("submit", (e) => {
+        const btn = document.getElementById("pc-submit-btn");
+        const btnText = document.getElementById("pc-btn-text");
+        const btnSpinner = document.getElementById("pc-btn-spinner");
+
+        btnText.classList.add("hidden");
+        btnSpinner.classList.remove("hidden");
+        btn.disabled = true;
+      });
+    }
 
     // --- ▲▲▲ 初期化・既存機能 ▲▲▲ ---
 
 
-    // --- ▼▼▼ 引き継ぎ機能用 JavaScript ▼▼▼ ---
-
-    // 要素取得
-    const saveHandoverBtn = document.getElementById('save-handover-btn');
-    const loadHandoverListBtn = document.getElementById('load-handover-list-btn');
-    const handoverListContainer = document.getElementById('handover-list-container');
-    const handoverListTableWrapper = document.getElementById('handover-list-table-wrapper');
-    const closeHandoverListBtn = document.getElementById('close-handover-list-btn');
-    const handoverSourceInfo = document.getElementById('handover-source-info');
-    const sourceTantoshaNameSpan = document.getElementById('source-tantosha-name');
-    const deleteHandoverIdInput = document.getElementById('delete-handover-id-input'); // Hidden input
-    const sourceTantoshaInput = document.getElementById('source-tantosha-input'); // Hidden input
-
-    // --- 1. 引き継ぎ保存処理 ---
-    saveHandoverBtn.addEventListener('click', async () => {
-        const tantoshaSelect = document.getElementById('tantosha-input');
-        const sourceTantosha = tantoshaSelect.value;
-
-        if (!sourceTantosha) {
-            alert('引き継ぎ保存するには、まず担当者を選択してください。');
-            return;
-        }
-
-        // フォームデータを収集 (ファイル以外)
-        const formData = {
-            handover_source_tantosha: sourceTantosha,
-            current_situation: document.getElementById('current-situation-input').value,
-            problem: document.getElementById('problem-input').value,
-            most_important_need: document.getElementById('most-important-need-input').value,
-            proposal_content: document.getElementById('proposal-content-input').value,
-            proposal_plan: document.getElementById('proposal-plan-input').value,
-            consideration_reason: document.getElementById('consideration-reason-input').value,
-            lead_date: document.getElementById('lead-date-input').value,
-            // ファイル名は含めない（サーバー側で管理）
-        };
-
-        console.log('Saving handover data:', formData);
-        const originalButtonContent = saveHandoverBtn.innerHTML; // SVG含む内容を保持
-        saveHandoverBtn.disabled = true;
-        saveHandoverBtn.innerHTML = `<span class="flex items-center justify-center"><svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V4a10 10 0 00-10 10h2zm2 8a8 8 0 01-8-8H0a10 10 0 0010 10v-2z"></path></svg>保存中...</span>`;
-
-        try {
-            // サーバーにデータを送信
-            const response = await fetch('/api/save_handover', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    // 必要に応じて CSRF トークンなどを追加
-                },
-                body: JSON.stringify(formData),
-            });
-
-            // エラーレスポンスもJSON形式であることを期待する（サーバー実装による）
-            const result = await response.json();
-
-            if (!response.ok) {
-                // サーバーからのエラーメッセージがあれば表示
-                throw new Error(result.message || `サーバーエラー: ${response.statusText}`);
-            }
-
-            if (result.status === 'success') {
-                alert(`引き継ぎデータを保存しました。(ID: ${result.id})`);
-                // 保存成功したらフォームをクリアするなどの処理も検討
-            } else {
-                 // サーバーが成功ステータスでエラーメッセージを返した場合
-                 alert(`引き継ぎデータの保存に失敗しました: ${result.message || '不明なエラー'}`);
-            }
-        } catch (error) {
-            console.error('引き継ぎ保存エラー:', error);
-            alert(`引き継ぎデータの保存中にエラーが発生しました: ${error.message}`);
-        } finally {
-             saveHandoverBtn.disabled = false;
-             saveHandoverBtn.innerHTML = originalButtonContent; // 元のボタン内容に戻す
-        }
-    });
-
-    // --- 2. 引き継ぎリスト表示処理 ---
-    loadHandoverListBtn.addEventListener('click', async () => {
-        console.log('「引き継ぐ」ボタンがクリックされました'); // ★デバッグ用ログ
-
-        // リストを開く前に、読み込み済みIDと表示をクリア
-        deleteHandoverIdInput.value = '';
-        handoverSourceInfo.classList.add('hidden');
-        // フォーム自体のクリアも検討（ユーザーが新規入力と間違えないように）
-        document.getElementById('upload-form').reset(); // 必要なら
-
-        loadHandoverListBtn.disabled = true;
-        handoverListTableWrapper.innerHTML = '<p class="text-sm text-gray-500 px-3 py-2">リストを読み込み中...</p>';
-        handoverListContainer.classList.remove('hidden');
-
-        try {
-            const response = await fetch('/api/list_handovers');
-            if (!response.ok) {
-                throw new Error(`サーバーエラー: ${response.statusText}`);
-            }
-            const handovers = await response.json();
-
-            if (!Array.isArray(handovers)) {
-                 throw new Error("サーバーからの応答が不正な形式です。");
-            }
-
-            if (handovers.length === 0) {
-                 handoverListTableWrapper.innerHTML = '<p class="text-sm text-gray-500 px-3 py-2">利用可能な引き継ぎデータはありません。</p>';
-                 return; // finally は実行される
-            }
-
-            // テーブルを生成
-            let tableHTML = '<table id="handover-list-table" class="w-full text-sm border-collapse"><thead><tr class="bg-gray-100"><th class="border p-2 text-left">引継元担当者</th><th class="border p-2 text-left">保存日時</th></tr></thead><tbody>';
-            handovers.forEach(h => {
-                const formattedDate = h.timestamp ? new Date(h.timestamp).toLocaleString('ja-JP', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '不明';
-                // XSS対策のため、表示するデータはエスケープするのが望ましい（サーバーサイドで行うか、JSで簡易的に）
-                const escapedSourceTantosha = h.source_tantosha ? String(h.source_tantosha).replace(/</g, "&lt;").replace(/>/g, "&gt;") : '不明';
-                tableHTML += `<tr data-handover-id="${h.id}" class="hover:bg-gray-100 cursor-pointer"><td class="border p-2">${escapedSourceTantosha}</td><td class="border p-2">${formattedDate}</td></tr>`;
-            });
-            tableHTML += '</tbody></table>';
-            handoverListTableWrapper.innerHTML = tableHTML;
-
-            // テーブル行にクリックイベントを追加
-            document.querySelectorAll('#handover-list-table tbody tr').forEach(row => {
-                row.addEventListener('click', () => {
-                    const handoverId = row.dataset.handoverId;
-                    if (handoverId) {
-                        loadSpecificHandover(handoverId);
-                    } else {
-                        console.error("Handover IDが見つかりません", row);
-                    }
-                });
-            });
-
-        } catch (error) {
-            console.error('引き継ぎリスト取得エラー:', error);
-            handoverListTableWrapper.innerHTML = `<p class="text-sm text-red-600 px-3 py-2">リストの読み込みに失敗しました: ${error.message}</p>`;
-        } finally {
-            loadHandoverListBtn.disabled = false;
-        }
-    });
-
-    // リストを閉じるボタン
-    closeHandoverListBtn.addEventListener('click', () => {
-         handoverListContainer.classList.add('hidden');
-    });
-
-    // --- 3. 特定の引き継ぎデータを読み込む処理 ---
-    async function loadSpecificHandover(handoverId) {
-        console.log(`Loading handover data for ID: ${handoverId}`);
-        handoverListContainer.classList.add('hidden'); // リストを閉じる
-
-        // フォームを一旦リセットするのも良い（前の入力が残らないように）
-        document.getElementById('upload-form').reset();
-        // プレビューもクリア
-        document.getElementById("business-card-preview").innerHTML = "";
-        document.getElementById("hearing-seed-preview").innerHTML = "";
-
-        try {
-             const response = await fetch(`/api/get_handover/${handoverId}`);
-             if (!response.ok) {
-                 // エラーレスポンスもJSON形式を期待
-                 let errorMsg = `サーバーエラー: ${response.statusText}`;
-                 try {
-                    const errData = await response.json();
-                    if (errData.description) errorMsg = errData.description;
-                 } catch(e) { /* JSONパース失敗は無視 */ }
-                 throw new Error(errorMsg);
-             }
-             const data = await response.json();
-
-             if (typeof data !== 'object' || data === null) {
-                 throw new Error("サーバーから無効なデータ形式が返されました。");
-             }
-
-             // フォームにデータを反映
-             document.getElementById('current-situation-input').value = data.current_situation || '';
-             document.getElementById('problem-input').value = data.problem || '';
-             document.getElementById('most-important-need-input').value = data.most_important_need || '';
-             document.getElementById('proposal-content-input').value = data.proposal_content || '';
-             document.getElementById('proposal-plan-input').value = data.proposal_plan || ''; // プランを選択状態にする
-             document.getElementById('consideration-reason-input').value = data.consideration_reason || '';
-             document.getElementById('lead-date-input').value = data.lead_date || '';
-
-             // ★重要: 担当者ドロップダウンはリセット（未選択状態に）
-             document.getElementById('tantosha-input').value = "";
-
-             // 引き継ぎ元情報を表示
-             sourceTantoshaNameSpan.textContent = data.handover_source_tantosha ? String(data.handover_source_tantosha).replace(/</g, "&lt;").replace(/>/g, "&gt;") : '不明';
-             sourceTantoshaInput.value =  sourceTantoshaNameSpan.textContent// Hidden inputに引き継ぎ元担当者を設定
-             handoverSourceInfo.classList.remove('hidden');
-
-             // ★読み込んだ引き継ぎIDをhidden inputに設定
-             deleteHandoverIdInput.value = handoverId;
-
-             alert('引き継ぎデータを読み込みました。\n担当者をご自身の名前に変更し、画像ファイルを選択し直して、入力を続けてください。');
-             // ファイルは引き継がれないため、再選択を促すメッセージを追加
-
-              // --- STEP 3: データを読み込めたので、サーバー上の元のデータを削除 ---
-            try {
-                console.log(`Attempting to delete handover data on server for ID: ${handoverId}`);
-                const deleteResponse = await fetch(`/api/delete_handover/${handoverId}`, {
-                    method: 'DELETE', // DELETEメソッドを使用
-                    headers: {
-                        'Content-Type': 'application/json',
-                        // 必要に応じてCSRFトークンなどのヘッダーを追加
-                    },
-                });
-
-                if (!deleteResponse.ok) {
-                    // 削除に失敗した場合のエラーハンドリング
-                    let deleteErrorMsg = `読み込んだ引き継ぎデータ(ID: ${handoverId})の削除に失敗しました。サーバー側の状態を確認してください。 Status: ${deleteResponse.status}`;
-                    try {
-                        const delErrData = await deleteResponse.json();
-                        if (delErrData.message) deleteErrorMsg += ` Message: ${delErrData.message}`;
-                    } catch (e) { /* Ignore JSON parse error */ }
-                    console.error(deleteErrorMsg);
-                    // ユーザーには、読み込みは成功したが削除は失敗したことを伝える
-                    alert(`データの読み込みには成功しましたが、元の引き継ぎデータ(ID: ${handoverId})の削除に失敗しました。\n\nこのまま入力を続けることは可能ですが、元のデータがサーバー上に残っています。`);
-                    // ここで処理を中断せず、読み込んだデータはフォームに残す
-                } else {
-                    // 削除成功
-                    console.log(`Successfully deleted handover data on server for ID: ${handoverId}`);
-                    // 削除成功した旨をユーザーに伝える（任意）
-                    // 例: アラートメッセージに追記する
-                    // alert(`担当者をご自身の名前に変更し、画像ファイルを選択し直して、入力を続けてください。`);
-                }
-            } catch (deleteError) {
-                // 削除リクエスト自体のネットワークエラーなど
-                console.error('引き継ぎデータ削除リクエスト中にエラー発生:', deleteError);
-                alert(`データの読み込みには成功しましたが、元の引き継ぎデータ(ID: ${handoverId})の削除リクエスト中にエラーが発生しました: ${deleteError.message}`);
-                // フォームは読み込んだ状態のままにする
-            }
-
-        } catch (error) {
-             console.error('特定引き継ぎデータ取得エラー:', error);
-             alert(`引き継ぎデータの読み込み中にエラーが発生しました: ${error.message}`);
-             handoverSourceInfo.classList.add('hidden');
-             // ★エラー時はhidden inputもクリア
-             deleteHandoverIdInput.value = '';
-             // エラー時はフォームを再度リセットするのも親切かも
-             document.getElementById('upload-form').reset();
-             document.getElementById("business-card-preview").innerHTML = "";
-             document.getElementById("hearing-seed-preview").innerHTML = "";
-        }
-    }
-
-    // --- ▲▲▲ 引き継ぎ機能用 JavaScript ▲▲▲ ---
 
   </script>
 </body>
