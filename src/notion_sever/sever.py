@@ -9,6 +9,7 @@ from datetime import datetime
 from flask import Flask, request, render_template, send_from_directory, redirect, url_for, session, jsonify, abort, flash
 from werkzeug.utils import secure_filename
 from PIL import Image
+from background_processor import background_processor
 # main.py 内の main 関数を process_cards としてインポート (存在すると仮定)
 try:
     from main import main as process_cards
@@ -122,6 +123,7 @@ def index():
             'authority_value': request.form.get('authority', ''), # 決裁権 (name="authority")
             'timing_value': request.form.get('timing', ''),       # 導入時期 (name="timing")
             'source_tantosha': request.form.get('source_tantosha', ''), # 引き継ぎ元担当者 (name="source_tantosha")
+            'voice_recorder_loan_value': request.form.get('voice_recorder_loan', '').strip(), # ボイスレコーダー貸し出し
          }
         
         # print (f"Received form data: {context}") # デバッグ用ログ
@@ -129,7 +131,6 @@ def index():
         session['last_tantosha'] = context['tantosha_value'] # セッションも更新
 
         handover_id_to_delete = request.form.get('delete_handover_id')
-        business_card_file = request.files.get("business_card")
         hearing_seed_files = [f for f in request.files.getlist("hearing_seed") if f and f.filename and f.filename.strip()]
 
         temp_files_to_delete = []
@@ -145,6 +146,32 @@ def index():
             if not context['needs_value']: raise ValueError("ニーズが選択されていません。")
             if not context['authority_value']: raise ValueError("決裁権が選択されていません。")
             if not context['timing_value']: raise ValueError("導入時期が選択されていません。")
+            
+            # 入力方法のチェック
+            input_method = request.form.get('input_method', 'image')
+            context['input_method'] = input_method
+            
+            if input_method == 'manual':
+                # 手入力モードのバリデーション
+                manual_company = request.form.get('manual_company', '').strip()
+                manual_name = request.form.get('manual_name', '').strip()
+                if not manual_company: raise ValueError("会社名を入力してください。")
+                if not manual_name: raise ValueError("担当者氏名を入力してください。")
+                
+                # 手入力データをcontextに追加
+                context['manual_data'] = {
+                    'manual_company': manual_company,
+                    'manual_department': request.form.get('manual_department', '').strip(),
+                    'manual_position': request.form.get('manual_position', '').strip(),
+                    'manual_name': manual_name,
+                    'manual_email': request.form.get('manual_email', '').strip(),
+                    'manual_phone': request.form.get('manual_phone', '').strip()
+                }
+            else:
+                # 名刺画像モードのバリデーション
+                business_card_file = request.files.get("business_card")
+                if not business_card_file or not business_card_file.filename:
+                    raise ValueError("名刺画像が選択されていません。")
 
             # 3. 日付処理
             raw_date = context['lead_date_value']
@@ -156,18 +183,23 @@ def index():
             else:
                 raise ValueError("日付はYYYY/M/D 形式で入力するか、空欄にしてください。")
 
-            # 4. 名刺画像の処理
-            if business_card_file and business_card_file.filename:
-                filename = secure_filename(business_card_file.filename)
-                base, ext = os.path.splitext(filename)
-                timestamp = int(time.time() * 1000)
-                temp_filepath = os.path.join(UPLOAD_FOLDER, f"{base}_{timestamp}_temp{ext}")
-                business_card_final_path = os.path.join(UPLOAD_FOLDER, f"{base}_{timestamp}.jpeg")
-                business_card_file.save(temp_filepath)
-                temp_files_to_delete.append(temp_filepath)
-                convert_to_jpeg(temp_filepath, business_card_final_path)
+            # 4. 名刺画像の処理（画像モードのみ）
+            if input_method == 'image':
+                business_card_file = request.files.get("business_card")
+                if business_card_file and business_card_file.filename:
+                    filename = secure_filename(business_card_file.filename)
+                    base, ext = os.path.splitext(filename)
+                    timestamp = int(time.time() * 1000)
+                    temp_filepath = os.path.join(UPLOAD_FOLDER, f"{base}_{timestamp}_temp{ext}")
+                    business_card_final_path = os.path.join(UPLOAD_FOLDER, f"{base}_{timestamp}.jpeg")
+                    business_card_file.save(temp_filepath)
+                    temp_files_to_delete.append(temp_filepath)
+                    convert_to_jpeg(temp_filepath, business_card_final_path)
+                else:
+                    raise ValueError("名刺画像が選択されていません。")
             else:
-                raise ValueError("名刺画像が選択されていません。")
+                # 手入力モードの場合は名刺画像なし
+                business_card_final_path = None
 
             # 5. ヒアリングシート画像の処理
             for i, file in enumerate(hearing_seed_files):
@@ -184,32 +216,22 @@ def index():
                 except Exception as conv_e:
                     print(f"ヒアリングシート画像 '{filename}' の変換エラー: {conv_e}")
 
-            # 6. main.py の処理関数呼び出しと結果確認
-            result_code = -1 # 初期値
-            if business_card_final_path:
-                business_card_abs_path = os.path.abspath(business_card_final_path)
-                hearing_seed_abs_paths = [os.path.abspath(p) for p in hearing_seed_final_paths]
-                print("--- Calling main process ---")
-                result_code = process_cards(business_card_abs_path, hearing_seed_abs_paths, lead_date, context)
-                print(f"--- main process returned: {result_code} ---")
+            # 6. バックグラウンド処理の開始
+            business_card_abs_path = os.path.abspath(business_card_final_path) if business_card_final_path else None
+            hearing_seed_abs_paths = [os.path.abspath(p) for p in hearing_seed_final_paths]
+            
+            # バックグラウンド処理を開始
+            background_processor.start_background_process(
+                business_card_abs_path, hearing_seed_abs_paths, lead_date, context
+            )
+            
+            print("--- Background processing started ---")
+            processing_successful = True
+            if input_method == 'manual':
+                context['message'] = "手入力データで処理をバックグラウンドで開始しました。結果はコンソールで確認できます。"
             else:
-                 # このケースは名刺必須チェックで防がれるはず
-                 raise ValueError("名刺画像の処理に問題が発生しました。")
-
-            # 7. main関数の結果に基づいてステータスを設定
-            if result_code == 0: # 正常終了
-                processing_successful = True
-                context['message'] = "notionデータベースに登録しました。"
-                context['success'] = "1"
-            elif result_code == 1: # main関数が異常終了コードを返した場合
-                processing_successful = False # ★ 失敗フラグを立てる
-                context['message'] = "Notionへの登録処理でエラーが発生しました。入力内容や連携設定を確認してください。" # ★ 専用のエラーメッセージ
-                context['success'] = "0"
-            else: # 予期せぬリターンコード
-                processing_successful = False
-                context['message'] = f"メイン処理で予期せぬリターンコード ({result_code}) が返されました。"
-                context['success'] = "0"
-                print(f"Warning: Unexpected return code from process_cards: {result_code}")
+                context['message'] = "名刺画像で処理をバックグラウンドで開始しました。結果はコンソールで確認できます。"
+            context['success'] = "1"
 
         except ValueError as ve:
             processing_successful = False # 失敗フラグ
@@ -256,7 +278,7 @@ def index():
                         print(f"Error deleting handover file {filepath_to_delete}: {e}")
                 else:
                     print(f"Invalid handover ID format received for deletion: '{handover_id_to_delete}'")
-            # 成功時はリダイレクト (PRGパターン)
+            # 成功時はメインページにリダイレクト（PRGパターン）
             return redirect(url_for("index", message=context['message'], success=context['success']))
         
         else:
@@ -286,6 +308,7 @@ def index():
             'authority_value': request.form.get('authority', ''),
             'timing_value': request.form.get('timing', ''),
             'source_tantosha': request.form.get('source_tantosha', ''),
+            'voice_recorder_loan_value': request.args.get('voice_recorder_loan', ''), # ボイスレコーダー貸し出し
          }
         return render_template('index.html', **context)
 

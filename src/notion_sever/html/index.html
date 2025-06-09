@@ -57,18 +57,66 @@
       </div>
 
       <div>
-        <label class="block font-medium mb-1">名刺画像<span class="text-red-500">*</span></label>
-        <div class="flex space-x-2">
-          <label for="business-card-input" class="cursor-pointer inline-flex items-center px-4 py-2 bg-indigo-100 rounded-lg hover:bg-indigo-200 transition">
-            ファイルを選択
+        <label class="block font-medium mb-1">名刺情報</label>
+        
+        <!-- 入力方法選択 -->
+        <div class="mb-3">
+          <label class="inline-flex items-center mr-4">
+            <input type="radio" name="input_method" value="image" id="input-method-image" class="form-radio" checked>
+            <span class="ml-2">名刺画像</span>
           </label>
-          <button type="button" id="business-card-camera" class="inline-flex items-center px-4 py-2 bg-indigo-100 rounded-lg hover:bg-indigo-200 transition">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>
-            カメラ
-          </button>
+          <label class="inline-flex items-center">
+            <input type="radio" name="input_method" value="manual" id="input-method-manual" class="form-radio">
+            <span class="ml-2">手入力</span>
+          </label>
         </div>
-        <input type="file" name="business_card" id="business-card-input" accept="image/*" class="hidden">
-        <div id="business-card-preview" class="mt-2 grid grid-cols-1 gap-2"></div>
+        
+        <!-- 名刺画像セクション -->
+        <div id="image-input-section">
+          <div class="flex space-x-2">
+            <label for="business-card-input" class="cursor-pointer inline-flex items-center px-4 py-2 bg-indigo-100 rounded-lg hover:bg-indigo-200 transition">
+              ファイルを選択
+            </label>
+            <button type="button" id="business-card-camera" class="inline-flex items-center px-4 py-2 bg-indigo-100 rounded-lg hover:bg-indigo-200 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>
+              カメラ
+            </button>
+          </div>
+          <input type="file" name="business_card" id="business-card-input" accept="image/*" class="hidden">
+          <div id="business-card-preview" class="mt-2 grid grid-cols-1 gap-2"></div>
+        </div>
+        
+        <!-- 手入力セクション -->
+        <div id="manual-input-section" class="hidden space-y-3">
+          <div>
+            <label for="manual-company" class="block text-sm font-medium text-gray-700 mb-1">会社名 <span class="text-red-500">*</span></label>
+            <input type="text" name="manual_company" id="manual-company" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="株式会社○○">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label for="manual-department" class="block text-sm font-medium text-gray-700 mb-1">部署名</label>
+              <input type="text" name="manual_department" id="manual-department" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="営業部">
+            </div>
+            <div>
+              <label for="manual-position" class="block text-sm font-medium text-gray-700 mb-1">役職名</label>
+              <input type="text" name="manual_position" id="manual-position" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="課長">
+            </div>
+          </div>
+          <div>
+            <label for="manual-name" class="block text-sm font-medium text-gray-700 mb-1">担当者氏名 <span class="text-red-500">*</span></label>
+            <input type="text" name="manual_name" id="manual-name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="田中太郎">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label for="manual-email" class="block text-sm font-medium text-gray-700 mb-1">メールアドレス</label>
+              <input type="email" name="manual_email" id="manual-email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="tanaka@example.com">
+            </div>
+            <div>
+              <label for="manual-phone" class="block text-sm font-medium text-gray-700 mb-1">電話番号</label>
+              <input type="tel" name="manual_phone" id="manual-phone" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="03-1234-5678">
+            </div>
+          </div>
+        </div>
       </div>
 
       <div>
@@ -167,6 +215,12 @@
       <div>
         <label for="lead-date-input" class="block font-medium">リード獲得日 (YYYY/M/D形式)</label> <input type="text" name="lead_date" id="lead-date-input" placeholder="デフォルトは当日になります" value="{{ lead_date_value }}" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500"> </div>
 
+      <div>
+        <label for="voice-recorder-loan-input" class="block text-sm font-medium text-gray-700 mb-1">ボイスレコーダー貸し出し</label>
+        <input type="text" name="voice_recorder_loan" id="voice-recorder-loan-input" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="管理番号を入力（例：VR001）" value="{{ voice_recorder_loan_value }}">
+        <p class="mt-1 text-xs text-gray-500">ボイスレコーダーを貸し出した場合の管理番号を入力してください</p>
+      </div>
+
       <div class="flex items-center space-x-3 pt-4">
           <button type="button" id="save-handover-btn" class="py-2 px-4 bg-yellow-500 text-white font-semibold rounded-lg shadow hover:bg-yellow-600 transition flex items-center justify-center">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -202,6 +256,42 @@
   </div>
 
   <script>
+    // 入力方法の切り替え
+    document.addEventListener('DOMContentLoaded', function() {
+      const imageRadio = document.getElementById('input-method-image');
+      const manualRadio = document.getElementById('input-method-manual');
+      const imageSection = document.getElementById('image-input-section');
+      const manualSection = document.getElementById('manual-input-section');
+      const businessCardInput = document.getElementById('business-card-input');
+      const manualCompany = document.getElementById('manual-company');
+      const manualName = document.getElementById('manual-name');
+      
+      function toggleInputMethod() {
+        if (manualRadio.checked) {
+          imageSection.classList.add('hidden');
+          manualSection.classList.remove('hidden');
+          // 名刺画像の必須を解除
+          businessCardInput.removeAttribute('required');
+          // 手入力フィールドを必須に
+          manualCompany.setAttribute('required', 'required');
+          manualName.setAttribute('required', 'required');
+        } else {
+          imageSection.classList.remove('hidden');
+          manualSection.classList.add('hidden');
+          // 名刺画像を必須に
+          businessCardInput.setAttribute('required', 'required');
+          // 手入力フィールドの必須を解除
+          manualCompany.removeAttribute('required');
+          manualName.removeAttribute('required');
+        }
+      }
+      
+      imageRadio.addEventListener('change', toggleInputMethod);
+      manualRadio.addEventListener('change', toggleInputMethod);
+      
+      // 初期状態を設定
+      toggleInputMethod();
+    });
     // --- ▼▼▼ 初期化・既存機能 ▼▼▼ ---
 
     // ページ読み込み時にカメラ許可を確認

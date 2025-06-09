@@ -1,0 +1,10 @@
+{
+  "job_id": "71802662-4129-4ba9-b5e4-5c081dd07022",
+  "status": "queued",
+  "created_at": "2025-06-09T01:07:07.758841",
+  "updated_at": "2025-06-09T01:07:07.758859",
+  "progress": 0,
+  "message": "処理待ち",
+  "result": null,
+  "error": null
+}
