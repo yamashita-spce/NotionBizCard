@@ -91,17 +91,27 @@ def convert_to_jpeg(src_path, dest_path):
         with Image.open(src_path) as img:
             # EXIFデータに基づいて画像を正しい向きに回転
             try:
-                from PIL.ExifTags import ORIENTATION
-                exif = img._getexif()
-                if exif is not None:
-                    orientation = exif.get(ORIENTATION)
-                    if orientation == 3:
-                        img = img.rotate(180, expand=True)
-                    elif orientation == 6:
-                        img = img.rotate(270, expand=True)
-                    elif orientation == 8:
-                        img = img.rotate(90, expand=True)
-            except (AttributeError, KeyError, TypeError):
+                # PIL.ExifTagsから直接ORIENTATION定数を取得（古いバージョン対応）
+                from PIL import ExifTags
+                
+                # ORIENTATION定数を検索（バージョン互換性対応）
+                orientation_key = None
+                for key, value in ExifTags.TAGS.items():
+                    if value == 'Orientation':
+                        orientation_key = key
+                        break
+                
+                if orientation_key is not None:
+                    exif = img._getexif()
+                    if exif is not None:
+                        orientation = exif.get(orientation_key)
+                        if orientation == 3:
+                            img = img.rotate(180, expand=True)
+                        elif orientation == 6:
+                            img = img.rotate(270, expand=True)
+                        elif orientation == 8:
+                            img = img.rotate(90, expand=True)
+            except (AttributeError, KeyError, TypeError, ImportError):
                 # EXIFデータがない場合やエラーの場合は無視
                 pass
             
