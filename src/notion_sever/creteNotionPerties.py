@@ -34,9 +34,9 @@ def get_perusona(context):
     }
     
     try:
-        needs = int(context.get("needs_value", "").strip())
-        authirity = int(context.get("authority_value", "").strip())
-        timing = int(context.get("timing_value", "").strip())
+        needs = int((context.get("needs_value") or "").strip())
+        authirity = int((context.get("authority_value") or "").strip())
+        timing = int((context.get("timing_value") or "").strip())
         
     except ValueError:
         needs = 0
@@ -72,7 +72,7 @@ def build_notion_properties(business_card_data, lead_date_str, context):
     # ▼ 会社名: Title 型
     # Notion 側で「会社名」が title プロパティとして定義されている場合、
     # 空なら "title": []、値があれば "title": [ { "type": "text", "text": {"content": ...} } ]
-    company = business_card_data.get("会社名", "").strip()
+    company = (business_card_data.get("会社名") or "").strip()
     if company:
         properties["会社名"] = {
             "title": [
@@ -87,7 +87,7 @@ def build_notion_properties(business_card_data, lead_date_str, context):
     
     # ▼ 担当者氏名: Rich text 型
     # Notion 側で「担当者氏名」が rich_text なら、以下のようにする
-    name = business_card_data.get("担当者氏名", "").strip()
+    name = (business_card_data.get("担当者氏名") or "").strip()
     if name:
         properties["担当者氏名"] = {
             "rich_text": [
@@ -101,7 +101,7 @@ def build_notion_properties(business_card_data, lead_date_str, context):
         properties["担当者氏名"] = {"rich_text": []}
 
     # ▼ 部署名: rich_text 型（OCR抽出結果をそのまま使用）
-    department = business_card_data.get("部署", "").strip()
+    department = (business_card_data.get("部署") or "").strip()
     if department:
         properties["部署名"] = {
             "rich_text": [
@@ -115,7 +115,7 @@ def build_notion_properties(business_card_data, lead_date_str, context):
         properties["部署名"] = {"rich_text": []}
 
     # ▼ 役職名: rich_text 型（OCR抽出結果をそのまま使用）
-    title_extracted = business_card_data.get("役職", "").strip()
+    title_extracted = (business_card_data.get("役職") or "").strip()
     if title_extracted:
         properties["役職名"] = {
             "rich_text": [
@@ -129,14 +129,14 @@ def build_notion_properties(business_card_data, lead_date_str, context):
         properties["役職名"] = {"rich_text": []}
 
     # ▼ 電話番号: phone_number 型
-    phone = business_card_data.get("電話番号", "").strip()
+    phone = (business_card_data.get("電話番号") or "").strip()
     if phone:
         properties["電話番号"] = {"phone_number": phone}
     else:
         properties["電話番号"] = {"phone_number": None}
 
     # ▼ メール: email 型
-    email = business_card_data.get("Eメール", "").strip()
+    email = (business_card_data.get("Eメール") or "").strip()
     if email:
         properties["メール"] = {"email": email}
     else:
@@ -150,8 +150,8 @@ def build_notion_properties(business_card_data, lead_date_str, context):
 
     # ▼ 担当者: multi_select 型
     tantou_list = [
-        context.get("tantosha_value","").strip(), 
-        context.get("source_tantosha","").strip()
+        (context.get("tantosha_value") or "").strip(), 
+        (context.get("source_tantosha") or "").strip()
         ]
     
     tantou = []
@@ -176,7 +176,7 @@ def build_notion_properties(business_card_data, lead_date_str, context):
     # メモの内容を生成
     memo_content_lines = []
     for key, label in memo_items.items():
-        value = context.get(key, "").strip()
+        value = (context.get(key) or "").strip()
         if value:
             memo_content_lines.append(f"■{label}\n{value}")
     
@@ -196,7 +196,7 @@ def build_notion_properties(business_card_data, lead_date_str, context):
         properties["ヒアリングメモ"] = {"rich_text": []}
     
     # ▼ ボイレコ貸し出し: rich_text 型
-    voice_record = context.get("voice_recorder_loan_value", "").strip()
+    voice_record = (context.get("voice_recorder_loan_value") or "").strip()
     if voice_record:
         properties["ボイレコ貸し出し"] = {
             "rich_text": [
@@ -227,7 +227,7 @@ def build_notion_properties(business_card_data, lead_date_str, context):
     properties["割引"] = {"number": None}
 
     # ▼ 郵便番号: rich_text 型
-    zipcode = business_card_data.get("郵便番号", "").strip()
+    zipcode = (business_card_data.get("郵便番号") or "").strip()
     if zipcode:
         properties["郵便番号"] = {
             "rich_text": [
@@ -241,7 +241,7 @@ def build_notion_properties(business_card_data, lead_date_str, context):
         properties["郵便番号"] = {"rich_text": []}
 
     # ▼ 都道府県: rich_text 型
-    address = business_card_data.get("住所", "").strip()
+    address = (business_card_data.get("住所") or "").strip()
     prefecture = ""
     if address:
         # アドレスの先頭要素だけ取り出す実装例（自由に変更可）

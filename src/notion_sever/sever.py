@@ -5,11 +5,15 @@ import time
 import json
 import uuid
 from datetime import datetime
+from dotenv import load_dotenv
 # render_template を使うために必要
 from flask import Flask, request, render_template, send_from_directory, redirect, url_for, session, jsonify, abort, flash
 from werkzeug.utils import secure_filename
 from PIL import Image
 from background_processor import background_processor
+
+# 環境変数を読み込み
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", "aws", ".env"))
 # main.py 内の main 関数を process_cards としてインポート (存在すると仮定)
 try:
     from main import main as process_cards
@@ -29,7 +33,21 @@ except ImportError:
 
 # --- Flask アプリケーション設定 ---
 app = Flask(__name__, template_folder='html')
-app.secret_key = os.environ.get('FLASK_SECRET_KEY', os.urandom(24))
+app.secret_key = os.getenv('FLASK_SECRET_KEY') or os.urandom(24)
+
+# セキュリティヘッダーの追加
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['Referrer-Policy'] = 'no-referrer-when-downgrade'
+    
+    # HTTPS使用時のセキュリティヘッダー
+    if request.is_secure:
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    
+    return response
 
 # --- 定数・設定 ---
 UPLOAD_FOLDER = 'uploads'
@@ -71,6 +89,22 @@ def convert_to_jpeg(src_path, dest_path):
     temp_path = dest_path + ".tmp"
     try:
         with Image.open(src_path) as img:
+            # EXIFデータに基づいて画像を正しい向きに回転
+            try:
+                from PIL.ExifTags import ORIENTATION
+                exif = img._getexif()
+                if exif is not None:
+                    orientation = exif.get(ORIENTATION)
+                    if orientation == 3:
+                        img = img.rotate(180, expand=True)
+                    elif orientation == 6:
+                        img = img.rotate(270, expand=True)
+                    elif orientation == 8:
+                        img = img.rotate(90, expand=True)
+            except (AttributeError, KeyError, TypeError):
+                # EXIFデータがない場合やエラーの場合は無視
+                pass
+            
             img = img.convert("RGB")
             
             # GPT-4o Vision最適サイズに調整
@@ -493,5 +527,31 @@ def delete_handover_api(handover_id):
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5001))
     debug_mode = os.environ.get("FLASK_DEBUG", "False").lower() in ["true", "1", "t"]
-    print(f"Starting Flask app on port {port} with debug mode: {debug_mode}")
-    app.run(host="0.0.0.0", port=port, debug=debug_mode)
+    use_https = os.environ.get("USE_HTTPS", "False").lower() in ["true", "1", "t"]
+    
+    if use_https:
+        # HTTPS設定
+        ssl_cert_path = os.path.join(os.path.dirname(__file__), "ssl", "cert.pem")
+        ssl_key_path = os.path.join(os.path.dirname(__file__), "ssl", "private.key")
+        
+        # SSL証明書の存在確認
+        if os.path.exists(ssl_cert_path) and os.path.exists(ssl_key_path):
+            print(f"Starting Flask app with HTTPS on port {port}")
+            print(f"SSL Certificate: {ssl_cert_path}")
+            print(f"SSL Private Key: {ssl_key_path}")
+            print("⚠️  自己署名証明書を使用しています。ブラウザで「詳細設定」→「安全でないサイトに進む」を選択してください。")
+            
+            context = (ssl_cert_path, ssl_key_path)
+            app.run(host="0.0.0.0", port=port, debug=debug_mode, ssl_context=context)
+        else:
+            print("❌ SSL証明書が見つかりません。以下のコマンドで証明書を生成してください:")
+            print("   chmod +x generate_ssl_cert.sh")
+            print("   ./generate_ssl_cert.sh")
+            print("")
+            print("HTTPSを無効にして起動する場合は、環境変数 USE_HTTPS=False を設定してください。")
+            exit(1)
+    else:
+        # HTTP設定
+        print(f"Starting Flask app with HTTP on port {port} with debug mode: {debug_mode}")
+        print("HTTPS を有効にする場合は、環境変数 USE_HTTPS=True を設定してください。")
+        app.run(host="0.0.0.0", port=port, debug=debug_mode)
